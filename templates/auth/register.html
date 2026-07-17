@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}Create Account – The PillBox Pharmacy{% endblock %}
+
+{% block extra_css %}
+<style>
+    .auth-wrap { max-width: 440px; margin: 40px auto; }
+    .auth-card { background: white; border-radius: 18px; box-shadow: var(--shadow-lg); overflow: hidden; }
+    .auth-header {
+        background: linear-gradient(135deg, var(--purple-deep), var(--purple-light));
+        padding: 32px 36px 28px;
+        text-align: center;
+        color: white;
+    }
+    .auth-header h2 { font-size: 1.6rem; font-weight: 800; margin-bottom: 6px; }
+    .auth-header p { font-size: 0.9rem; opacity: 0.85; }
+    .auth-body { padding: 32px 36px; }
+    .form-group { margin-bottom: 18px; }
+    label { display: block; font-size: 0.82rem; font-weight: 700; color: var(--gray-700); margin-bottom: 7px; text-transform: uppercase; letter-spacing: 0.04em; }
+    .field-wrap { position: relative; }
+    .field-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); font-size: 1rem; pointer-events: none; }
+    input[type=email], input[type=password], input[type=text] {
+        width: 100%;
+        padding: 11px 14px 11px 40px;
+        border: 1.5px solid var(--gray-200);
+        border-radius: 10px;
+        font-size: 0.95rem;
+        outline: none;
+        font-family: inherit;
+        transition: border-color 0.15s, box-shadow 0.15s;
+        color: var(--gray-900);
+    }
+    input:focus { border-color: var(--purple); box-shadow: 0 0 0 3px rgba(123,47,190,0.12); }
+    .btn-auth {
+        width: 100%;
+        background: var(--purple);
+        color: white;
+        border: none;
+        border-radius: 10px;
+        padding: 13px;
+        font-size: 1rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: background 0.18s, transform 0.12s;
+        margin-top: 6px;
+    }
+    .btn-auth:hover { background: var(--purple-light); transform: translateY(-1px); }
+    .auth-footer { text-align: center; margin-top: 20px; font-size: 0.88rem; color: var(--gray-600); }
+    .auth-footer a { color: var(--purple); font-weight: 600; }
+    .divider { display: flex; align-items: center; gap: 12px; margin: 20px 0; color: var(--gray-600); font-size: 0.8rem; }
+    .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--gray-200); }
+    .terms { font-size: 0.76rem; color: var(--gray-600); text-align: center; margin-top: 14px; line-height: 1.5; }
+    .terms a { color: var(--purple); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="auth-wrap">
+    <div class="auth-card">
+        <div class="auth-header">
+            <div style="font-size:2.4rem;margin-bottom:8px;">🎉</div>
+            <h2>Create Account</h2>
+            <p>Join PillBox — it's free and takes 30 seconds</p>
+        </div>
+        <div class="auth-body">
+            <form method="post">
+                <div class="form-group">
+                    <label>Full Name</label>
+                    <div class="field-wrap">
+                        <span class="field-icon">👤</span>
+                        <input type="text" name="name" placeholder="Jane Brown" required autofocus>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Email Address</label>
+                    <div class="field-wrap">
+                        <span class="field-icon">✉️</span>
+                        <input type="email" name="email" placeholder="you@example.com" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <div class="field-wrap">
+                        <span class="field-icon">🔒</span>
+                        <input type="password" name="password" placeholder="Choose a strong password" required minlength="6">
+                    </div>
+                </div>
+                <button type="submit" class="btn-auth">Create My Account →</button>
+                <p class="terms">By creating an account you agree to our <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>.</p>
+            </form>
+            <div class="divider">already have an account?</div>
+            <div class="auth-footer">
+                <a href="{{ url_for('login') }}">Sign in instead</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

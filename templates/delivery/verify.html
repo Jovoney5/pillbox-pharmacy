@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify Delivery – PillBox</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --teal: #0d9488; --teal-light: #14b8a6; --teal-dark: #0f766e;
+            --bg: #0f172a; --sidebar: #1e293b; --card: #1e293b;
+            --border: #334155; --text: #f1f5f9; --muted: #94a3b8;
+        }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+        a { text-decoration: none; color: inherit; }
+
+        .top-bar {
+            background: var(--sidebar);
+            border-bottom: 1px solid var(--border);
+            padding: 0 24px; height: 64px;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .top-bar-brand { display: flex; align-items: center; gap: 12px; }
+        .brand-icon { width: 36px; height: 36px; background: var(--teal); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; }
+        .brand-name { font-weight: 700; font-size: 1rem; }
+        .btn-back {
+            padding: 7px 16px; background: rgba(255,255,255,0.06);
+            color: var(--muted); border: 1px solid var(--border);
+            border-radius: 8px; font-size: 0.82rem; font-weight: 600;
+            cursor: pointer; font-family: inherit;
+        }
+        .btn-back:hover { color: var(--text); }
+
+        .main { max-width: 680px; margin: 0 auto; padding: 40px 20px; }
+
+        .page-header { margin-bottom: 28px; }
+        .page-header h1 { font-size: 1.4rem; font-weight: 700; margin-bottom: 4px; }
+        .page-header p { color: var(--muted); font-size: 0.88rem; }
+
+        .info-card {
+            background: var(--card); border: 1px solid var(--border);
+            border-radius: 14px; padding: 22px; margin-bottom: 20px;
+        }
+        .info-card h3 { font-size: 0.9rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 14px; }
+
+        .info-row { display: flex; gap: 10px; margin-bottom: 10px; font-size: 0.88rem; }
+        .info-row .icon { flex-shrink: 0; font-size: 0.95rem; width: 20px; }
+        .info-row .label { color: var(--muted); min-width: 80px; }
+        .info-row .val { color: var(--text); font-weight: 500; }
+
+        /* Items table */
+        .items-table { width: 100%; border-collapse: collapse; }
+        .items-table th {
+            text-align: left; padding: 8px 0; font-size: 0.75rem; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted);
+            border-bottom: 1px solid var(--border);
+        }
+        .items-table td { padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.86rem; }
+        .items-table tr:last-child td { border-bottom: none; }
+
+        /* Code input section */
+        .verify-card {
+            background: var(--card); border: 1px solid var(--border);
+            border-radius: 14px; padding: 28px; text-align: center;
+        }
+        .verify-card h3 { font-size: 1.05rem; font-weight: 700; margin-bottom: 6px; }
+        .verify-card p { color: var(--muted); font-size: 0.85rem; margin-bottom: 24px; }
+
+        .code-input {
+            width: 100%; max-width: 280px;
+            padding: 18px; margin: 0 auto 20px;
+            display: block;
+            background: var(--bg); border: 2px solid var(--border);
+            border-radius: 12px; color: var(--text);
+            font-size: 2rem; font-weight: 800; font-family: monospace;
+            text-align: center; letter-spacing: 0.2em; text-transform: uppercase;
+            outline: none; transition: border-color 0.15s;
+        }
+        .code-input:focus { border-color: var(--teal); }
+
+        .btn-verify {
+            width: 100%; max-width: 280px;
+            padding: 14px; display: block; margin: 0 auto;
+            background: var(--teal); color: white;
+            border: none; border-radius: 10px;
+            font-size: 1rem; font-weight: 700;
+            cursor: pointer; transition: background 0.18s;
+            font-family: inherit;
+        }
+        .btn-verify:hover { background: var(--teal-light); }
+        .btn-verify:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .result-msg {
+            margin-top: 18px; padding: 12px 16px;
+            border-radius: 10px; font-size: 0.9rem; font-weight: 600;
+            display: none;
+        }
+        .result-msg.success { background: rgba(22,163,74,0.15); color: #4ade80; border: 1px solid rgba(22,163,74,0.3); }
+        .result-msg.error   { background: rgba(220,38,38,0.15);  color: #f87171; border: 1px solid rgba(220,38,38,0.3); }
+
+        .success-screen {
+            display: none; text-align: center; padding: 20px 0;
+        }
+        .success-icon {
+            width: 80px; height: 80px; background: rgba(22,163,74,0.15);
+            border: 3px solid #4ade80; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 2.2rem; margin: 0 auto 20px;
+        }
+        .success-screen h2 { font-size: 1.4rem; font-weight: 700; color: #4ade80; margin-bottom: 8px; }
+        .success-screen p { color: var(--muted); font-size: 0.88rem; }
+        .btn-done {
+            margin-top: 20px; padding: 12px 28px;
+            background: var(--teal); color: white; border: none;
+            border-radius: 10px; font-size: 0.95rem; font-weight: 700;
+            cursor: pointer; font-family: inherit;
+        }
+    </style>
+</head>
+<body>
+
+<header class="top-bar">
+    <div class="top-bar-brand">
+        <div class="brand-icon">🚚</div>
+        <div class="brand-name">PillBox Delivery Portal</div>
+    </div>
+    <a href="{{ url_for('delivery_dashboard') }}" class="btn-back">← Dashboard</a>
+</header>
+
+<main class="main">
+    <div class="page-header">
+        <h1>Verify Delivery</h1>
+        <p>Confirm delivery by entering the customer's confirmation code.</p>
+    </div>
+
+    <!-- Order Info -->
+    <div class="info-card">
+        <h3>Order Details</h3>
+        <div class="info-row">
+            <span class="icon">🔖</span>
+            <span class="label">Order ID</span>
+            <span class="val">{{ order.id }}</span>
+        </div>
+        <div class="info-row">
+            <span class="icon">👤</span>
+            <span class="label">Customer</span>
+            <span class="val">{{ order.customer_name }}</span>
+        </div>
+        <div class="info-row">
+            <span class="icon">📍</span>
+            <span class="label">Address</span>
+            <span class="val">{{ order.address }}{% if order.parish %}, {{ order.parish }}{% endif %}</span>
+        </div>
+        <div class="info-row">
+            <span class="icon">📞</span>
+            <span class="label">Phone</span>
+            <span class="val">{{ order.customer_phone or '—' }}</span>
+        </div>
+    </div>
+
+    <!-- Items -->
+    <div class="info-card">
+        <h3>Items in this Order</h3>
+        <table class="items-table">
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th style="text-align:center;">Qty</th>
+                    <th style="text-align:right;">Price</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in order.items %}
+                <tr>
+                    <td>{{ item.name }}</td>
+                    <td style="text-align:center;">{{ item.qty }}</td>
+                    <td style="text-align:right;color:var(--teal);font-weight:600;">JMD {{ "{:,.2f}".format(item.price * item.qty) }}</td>
+                </tr>
+                {% endfor %}
+                <tr>
+                    <td colspan="2" style="text-align:right;font-weight:700;color:var(--muted);font-size:0.8rem;text-transform:uppercase;letter-spacing:0.04em;">Total</td>
+                    <td style="text-align:right;font-weight:800;color:var(--teal);font-size:1rem;">JMD {{ "{:,.2f}".format(order.total) }}</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Code verification -->
+    <div class="verify-card">
+        <div id="verifyForm">
+            <h3>Enter Customer Code</h3>
+            <p>Ask the customer for their 6-character confirmation code</p>
+            <input type="text" class="code-input" id="codeInput"
+                   maxlength="6" placeholder="PB0000"
+                   oninput="this.value=this.value.toUpperCase()">
+            <button class="btn-verify" id="verifyBtn" onclick="verifyCode()">
+                Verify &amp; Mark Delivered
+            </button>
+            <div class="result-msg" id="resultMsg"></div>
+        </div>
+
+        <div class="success-screen" id="successScreen">
+            <div class="success-icon">✓</div>
+            <h2>Delivery Confirmed!</h2>
+            <p>This order has been marked as delivered successfully.</p>
+            <button class="btn-done" onclick="window.location='{{ url_for('delivery_dashboard') }}'">
+                Back to Dashboard
+            </button>
+        </div>
+    </div>
+</main>
+
+<script>
+function verifyCode() {
+    const code = document.getElementById('codeInput').value.trim().toUpperCase();
+    if (code.length < 6) {
+        showResult(false, 'Please enter the full 6-character code.');
+        return;
+    }
+    const btn = document.getElementById('verifyBtn');
+    btn.disabled = true;
+    btn.textContent = 'Verifying…';
+
+    const fd = new FormData();
+    fd.append('code', code);
+
+    fetch('/delivery/verify/{{ order.id }}', { method: 'POST', body: fd })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('verifyForm').style.display = 'none';
+                document.getElementById('successScreen').style.display = 'block';
+            } else {
+                showResult(false, data.message || 'Incorrect code. Please try again.');
+                btn.disabled = false;
+                btn.textContent = 'Verify & Mark Delivered';
+            }
+        })
+        .catch(() => {
+            showResult(false, 'Network error. Please try again.');
+            btn.disabled = false;
+            btn.textContent = 'Verify & Mark Delivered';
+        });
+}
+
+function showResult(success, msg) {
+    const el = document.getElementById('resultMsg');
+    el.textContent = (success ? '✓ ' : '✗ ') + msg;
+    el.className = 'result-msg ' + (success ? 'success' : 'error');
+    el.style.display = 'block';
+}
+
+// Allow pressing Enter to verify
+document.getElementById('codeInput').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') verifyCode();
+});
+</script>
+</body>
+</html>

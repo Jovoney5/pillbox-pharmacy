@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Delivery Dashboard – PillBox</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --teal: #0d9488; --teal-light: #14b8a6; --teal-dark: #0f766e;
+            --bg: #0f172a; --sidebar: #1e293b; --card: #1e293b;
+            --card2: #0f172a; --border: #334155;
+            --text: #f1f5f9; --muted: #94a3b8; --muted2: #64748b;
+        }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+        a { text-decoration: none; color: inherit; }
+
+        /* Header */
+        .top-bar {
+            background: var(--sidebar);
+            border-bottom: 1px solid var(--border);
+            padding: 0 24px;
+            height: 64px;
+            display: flex; align-items: center; justify-content: space-between;
+            position: sticky; top: 0; z-index: 100;
+        }
+        .top-bar-brand { display: flex; align-items: center; gap: 12px; }
+        .brand-icon { width: 36px; height: 36px; background: var(--teal); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; }
+        .brand-name { font-weight: 700; font-size: 1rem; }
+        .brand-sub  { font-size: 0.72rem; color: var(--muted); }
+        .top-bar-right { display: flex; align-items: center; gap: 16px; }
+        .worker-name { font-size: 0.85rem; color: var(--muted); }
+        .worker-name strong { color: var(--text); }
+        .btn-logout {
+            padding: 7px 16px;
+            background: rgba(220,38,38,0.15);
+            color: #f87171;
+            border: 1px solid rgba(220,38,38,0.3);
+            border-radius: 8px;
+            font-size: 0.82rem; font-weight: 600;
+            cursor: pointer; transition: background 0.15s;
+            font-family: inherit;
+        }
+        .btn-logout:hover { background: rgba(220,38,38,0.25); }
+
+        /* Main */
+        .main { max-width: 1100px; margin: 0 auto; padding: 32px 20px; }
+
+        .page-title { font-size: 1.4rem; font-weight: 700; margin-bottom: 6px; }
+        .page-sub   { color: var(--muted); font-size: 0.88rem; margin-bottom: 24px; }
+
+        /* Summary pills */
+        .summary-row { display: flex; gap: 12px; margin-bottom: 28px; flex-wrap: wrap; }
+        .summary-pill {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px 20px;
+            display: flex; align-items: center; gap: 10px;
+            font-size: 0.88rem;
+        }
+        .summary-pill .pill-num { font-size: 1.4rem; font-weight: 800; color: var(--teal); }
+        .summary-pill .pill-label { color: var(--muted); font-size: 0.78rem; margin-top: 2px; }
+
+        /* Order cards grid */
+        .orders-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; }
+
+        .order-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 20px;
+            display: flex; flex-direction: column; gap: 14px;
+        }
+        .order-card-header { display: flex; justify-content: space-between; align-items: flex-start; }
+        .order-id { font-size: 1rem; font-weight: 700; }
+        .order-customer { font-size: 0.82rem; color: var(--muted); margin-top: 3px; }
+
+        .status-badge {
+            display: inline-block; padding: 3px 10px;
+            border-radius: 20px; font-size: 0.72rem; font-weight: 700;
+            color: white; white-space: nowrap;
+        }
+
+        .order-detail-row { display: flex; align-items: flex-start; gap: 8px; font-size: 0.84rem; color: var(--muted); }
+        .order-detail-row .icon { font-size: 0.9rem; flex-shrink: 0; margin-top: 1px; }
+        .order-detail-row span { color: var(--text); }
+
+        .code-box {
+            background: var(--card2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px 14px;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .code-label { font-size: 0.72rem; color: var(--muted); margin-bottom: 3px; }
+        .code-value { font-family: monospace; font-size: 1.1rem; font-weight: 800; letter-spacing: 0.12em; color: var(--teal); filter: blur(4px); transition: filter 0.2s; }
+        .code-value.revealed { filter: blur(0); }
+        .code-reveal-btn {
+            font-size: 0.72rem; color: var(--muted); cursor: pointer;
+            padding: 4px 8px; border: 1px solid var(--border); border-radius: 6px;
+            background: none; font-family: inherit; transition: color 0.15s;
+        }
+        .code-reveal-btn:hover { color: var(--teal); border-color: var(--teal); }
+
+        .card-actions { display: flex; gap: 10px; margin-top: 4px; }
+        .btn-claim {
+            flex: 1; padding: 11px;
+            background: var(--teal); color: white;
+            border: none; border-radius: 9px;
+            font-size: 0.88rem; font-weight: 700;
+            cursor: pointer; transition: background 0.18s;
+            font-family: inherit;
+        }
+        .btn-claim:hover { background: var(--teal-light); }
+        .btn-claim:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-verify {
+            flex: 1; padding: 11px;
+            background: rgba(13,148,136,0.15); color: var(--teal);
+            border: 1.5px solid var(--teal);
+            border-radius: 9px; font-size: 0.88rem; font-weight: 700;
+            cursor: pointer; transition: all 0.18s;
+            font-family: inherit; text-align: center; display: flex; align-items: center; justify-content: center;
+        }
+        .btn-verify:hover { background: var(--teal); color: white; }
+        .badge-assigned {
+            flex: 1; padding: 11px;
+            background: rgba(100,116,139,0.15); color: var(--muted);
+            border: 1.5px solid var(--border);
+            border-radius: 9px; font-size: 0.82rem; font-weight: 600;
+            text-align: center;
+        }
+
+        .empty-state {
+            grid-column: 1/-1;
+            text-align: center; padding: 60px 20px;
+            color: var(--muted);
+        }
+        .empty-state .empty-icon { font-size: 3rem; margin-bottom: 16px; }
+        .empty-state h3 { font-size: 1.1rem; font-weight: 600; margin-bottom: 8px; color: var(--text); }
+
+        @media (max-width: 600px) {
+            .top-bar { padding: 0 16px; }
+            .main { padding: 20px 14px; }
+            .orders-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="top-bar">
+    <div class="top-bar-brand">
+        <div class="brand-icon">🚚</div>
+        <div>
+            <div class="brand-name">PillBox Delivery Portal</div>
+            <div class="brand-sub">Driver Interface</div>
+        </div>
+    </div>
+    <div class="top-bar-right">
+        <div class="worker-name">Logged in as <strong>{{ worker_name or 'Driver' }}</strong></div>
+        <a href="{{ url_for('delivery_logout') }}" class="btn-logout">Sign Out</a>
+    </div>
+</header>
+
+<!-- Main -->
+<main class="main">
+    <h1 class="page-title">Today's Deliveries</h1>
+    <p class="page-sub">Claim and complete delivery orders assigned to you.</p>
+
+    <!-- Summary pills -->
+    {% set my_orders = today_orders | selectattr('delivery_worker_id', 'equalto', worker_id) | list %}
+    {% set unassigned = today_orders | selectattr('delivery_worker_id', 'none') | list %}
+    <div class="summary-row">
+        <div class="summary-pill">
+            <div>
+                <div class="pill-num">{{ today_orders|length }}</div>
+                <div class="pill-label">Active Deliveries</div>
+            </div>
+        </div>
+        <div class="summary-pill">
+            <div>
+                <div class="pill-num">{{ my_orders|length }}</div>
+                <div class="pill-label">Assigned to Me</div>
+            </div>
+        </div>
+        <div class="summary-pill">
+            <div>
+                <div class="pill-num">{{ unassigned|length }}</div>
+                <div class="pill-label">Unclaimed</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Order cards -->
+    <div class="orders-grid">
+        {% for order in today_orders %}
+        {% set is_mine   = order.delivery_worker_id == worker_id %}
+        {% set is_theirs = order.delivery_worker_id and not is_mine %}
+        {% set sc = {
+            'processing':       '#3B82F6',
+            'out_for_delivery': '#F97316',
+        } %}
+        <div class="order-card">
+            <div class="order-card-header">
+                <div>
+                    <div class="order-id">{{ order.id }}</div>
+                    <div class="order-customer">{{ order.customer_name }}</div>
+                </div>
+                <span class="status-badge" style="background:{{ sc.get(order.status,'#6B7280') }};">
+                    {{ order.status.replace('_',' ').title() }}
+                </span>
+            </div>
+
+            <div class="order-detail-row">
+                <span class="icon">📍</span>
+                <span>{{ order.address }}{% if order.parish %}, {{ order.parish }}{% endif %}</span>
+            </div>
+            <div class="order-detail-row">
+                <span class="icon">📦</span>
+                <span>{{ order.items|length }} item(s) &nbsp;·&nbsp; <strong style="color:var(--teal);">JMD {{ "{:,.2f}".format(order.total) }}</strong></span>
+            </div>
+
+            <!-- Pickup code (blurred until claimed by this driver) -->
+            <div class="code-box" id="codebox-{{ order.id }}">
+                <div>
+                    <div class="code-label">Confirmation Code</div>
+                    <div class="code-value {% if is_mine %}revealed{% endif %}" id="code-{{ order.id }}">
+                        {{ order.pickup_code if is_mine else '██████' }}
+                    </div>
+                </div>
+                {% if is_mine %}
+                <button class="code-reveal-btn" onclick="toggleCode('{{ order.id }}', this)">Hide</button>
+                {% endif %}
+            </div>
+
+            <div class="card-actions">
+                {% if not order.delivery_worker_id %}
+                <button class="btn-claim" id="claim-btn-{{ order.id }}"
+                        onclick="claimOrder('{{ order.id }}', this)">
+                    Claim Order
+                </button>
+                {% elif is_mine %}
+                <a href="{{ url_for('delivery_verify', order_id=order.id) }}" class="btn-verify">
+                    Verify Delivery →
+                </a>
+                {% else %}
+                <div class="badge-assigned">Assigned to another driver</div>
+                {% endif %}
+            </div>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-icon">📭</div>
+            <h3>No deliveries right now</h3>
+            <p>New delivery orders will appear here once placed.</p>
+        </div>
+        {% endfor %}
+    </div>
+</main>
+
+<script>
+function claimOrder(orderId, btn) {
+    btn.disabled = true;
+    btn.textContent = 'Claiming…';
+    fetch(`/delivery/claim/${orderId}`, { method: 'POST' })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                btn.disabled = false;
+                btn.textContent = 'Claim Order';
+                alert('Could not claim order. Please try again.');
+            }
+        })
+        .catch(() => {
+            btn.disabled = false;
+            btn.textContent = 'Claim Order';
+        });
+}
+
+function toggleCode(orderId, btn) {
+    const cv = document.getElementById('code-' + orderId);
+    if (cv.classList.contains('revealed')) {
+        cv.classList.remove('revealed');
+        btn.textContent = 'Reveal';
+    } else {
+        cv.classList.add('revealed');
+        btn.textContent = 'Hide';
+    }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+{% block title %}Cart – The PillBox Pharmacy{% endblock %}
+
+{% block extra_css %}
+<style>
+    .cart-layout { display: grid; grid-template-columns: 1fr 340px; gap: 28px; }
+    .cart-card { background: white; border-radius: 14px; box-shadow: var(--shadow); overflow: hidden; }
+    .cart-card-header {
+        padding: 18px 24px;
+        border-bottom: 1px solid var(--gray-200);
+        font-size: 1.1rem;
+        font-weight: 700;
+        background: var(--purple-pale);
+        color: var(--purple-dark);
+    }
+    .cart-item {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 18px 24px;
+        border-bottom: 1px solid var(--gray-100);
+    }
+    .cart-item:last-child { border-bottom: none; }
+    .cart-item img { width: 80px; height: 80px; border-radius: 8px; object-fit: cover; flex-shrink: 0; }
+    .item-info { flex: 1; }
+    .item-name { font-weight: 600; font-size: 0.95rem; margin-bottom: 4px; }
+    .item-price { color: var(--purple); font-weight: 600; font-size: 0.9rem; }
+    .qty-form { display: flex; align-items: center; gap: 8px; }
+    .qty-select {
+        padding: 5px 10px;
+        border: 1px solid var(--gray-200);
+        border-radius: 6px;
+        font-size: 0.88rem;
+        background: white;
+    }
+    .remove-btn {
+        background: none;
+        border: none;
+        color: var(--red);
+        cursor: pointer;
+        font-size: 1.2rem;
+        padding: 4px 8px;
+        border-radius: 4px;
+        transition: background 0.15s;
+    }
+    .remove-btn:hover { background: #fee2e2; }
+    .item-subtotal { font-weight: 700; font-size: 0.95rem; min-width: 70px; text-align: right; color: var(--purple-dark); }
+
+    .order-summary {
+        background: white;
+        border-radius: 14px;
+        box-shadow: var(--shadow);
+        padding: 24px;
+        height: fit-content;
+        position: sticky;
+        top: 80px;
+        border-top: 4px solid var(--purple);
+    }
+    .order-summary h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 20px; }
+    .summary-row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 0.92rem; color: var(--gray-700); }
+    .summary-row.total { font-size: 1.1rem; font-weight: 700; color: var(--gray-900); border-top: 2px solid var(--gray-200); padding-top: 14px; margin-top: 6px; }
+    .checkout-btn {
+        display: block;
+        width: 100%;
+        background: var(--purple);
+        color: white;
+        border: none;
+        border-radius: 10px;
+        padding: 14px;
+        font-size: 1rem;
+        font-weight: 700;
+        cursor: pointer;
+        text-align: center;
+        margin-top: 18px;
+        transition: background 0.18s;
+    }
+    .checkout-btn:hover { background: var(--purple-light); }
+    .promo-row { margin-top: 14px; }
+    .promo-row input {
+        width: 100%;
+        padding: 9px 12px;
+        border: 1px solid var(--gray-200);
+        border-radius: 8px;
+        font-size: 0.88rem;
+        margin-bottom: 8px;
+    }
+    .promo-row button {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid var(--purple);
+        border-radius: 8px;
+        background: transparent;
+        color: var(--purple);
+        font-weight: 600;
+        cursor: pointer;
+        font-size: 0.88rem;
+    }
+    .promo-row button:hover { background: var(--purple-pale); }
+
+    .empty-cart { text-align: center; padding: 60px 20px; }
+    .empty-cart .icon { font-size: 3.5rem; margin-bottom: 16px; }
+    .empty-cart h3 { font-size: 1.3rem; font-weight: 700; margin-bottom: 8px; }
+    .empty-cart p { color: var(--gray-600); margin-bottom: 24px; }
+
+    @media (max-width: 700px) {
+        .cart-layout { grid-template-columns: 1fr; }
+        .order-summary { position: static; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<h2 style="font-size:1.6rem; font-weight:700; margin-bottom:24px;">🛒 Your Cart</h2>
+
+{% if cart_items %}
+<div class="cart-layout">
+    <div>
+        <div class="cart-card">
+            <div class="cart-card-header">{{ cart_items|length }} item{{ 's' if cart_items|length != 1 else '' }}</div>
+            {% for item in cart_items %}
+            <div class="cart-item">
+                <img src="{{ item.img }}" alt="{{ item.name }}">
+                <div class="item-info">
+                    <div class="item-name">{{ item.name }}</div>
+                    <div class="item-price">JMD{{ "%.2f"|format(item.price) }} each</div>
+                </div>
+                <form action="{{ url_for('update_cart', product_id=item.id) }}" method="post" class="qty-form">
+                    <select name="qty" class="qty-select" onchange="this.form.submit()">
+                        {% for n in range(1, 20) %}
+                        <option value="{{ n }}" {{ 'selected' if item.qty == n else '' }}>{{ n }}</option>
+                        {% endfor %}
+                    </select>
+                </form>
+                <div class="item-subtotal">JMD{{ "%.2f"|format(item.price * item.qty) }}</div>
+                <form action="{{ url_for('remove_from_cart', product_id=item.id) }}" method="post">
+                    <button type="submit" class="remove-btn" title="Remove">🗑</button>
+                </form>
+            </div>
+            {% endfor %}
+        </div>
+        <div style="margin-top:16px;">
+            <a href="{{ url_for('shop') }}" class="btn btn-outline">← Continue Shopping</a>
+        </div>
+    </div>
+
+    <div class="order-summary">
+        <h3>Order Summary</h3>
+        <div class="summary-row"><span>Subtotal</span><span>JMD{{ total }}</span></div>
+        <div class="summary-row"><span>Shipping</span><span style="color:var(--purple);">{{ 'FREE' if total >= 5000 else 'JMD500' }}</span></div>
+        <div class="summary-row"><span>Tax (15% GCT)</span><span>JMD{{ "%.2f"|format(total * 0.15) }}</span></div>
+        <div class="summary-row total">
+            <span>Total</span>
+            <span>JMD{{ "%.2f"|format(total + (0 if total >= 5000 else 500) + total * 0.15) }}</span>
+        </div>
+        <a href="{{ url_for('checkout') }}" class="checkout-btn">Proceed to Checkout →</a>
+        <div class="promo-row">
+            <input type="text" placeholder="Promo code (e.g. CARE20)">
+            <button>Apply Code</button>
+        </div>
+        <div style="text-align:center; margin-top:14px; font-size:0.78rem; color:var(--gray-600);">
+            🔒 Secure checkout · SSL encrypted
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="cart-card empty-cart">
+    <div class="icon">🛒</div>
+    <h3>Your cart is empty</h3>
+    <p>Looks like you haven't added anything yet.</p>
+    <a href="{{ url_for('shop') }}" class="btn btn-primary">Start Shopping</a>
+</div>
+{% endif %}
+{% endblock %}

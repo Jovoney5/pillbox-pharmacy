@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block title %}Order Confirmed – The PillBox Pharmacy{% endblock %}
+
+{% block extra_css %}
+<style>
+    .confirm-wrapper { max-width: 560px; margin: 40px auto; text-align: center; }
+    .confirm-card { background: white; border-radius: 16px; box-shadow: var(--shadow-lg); padding: 48px 36px; border-top: 6px solid var(--purple); }
+    .check-circle {
+        width: 80px; height: 80px;
+        background: var(--purple-pale);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2.2rem;
+        margin: 0 auto 24px;
+        border: 3px solid var(--purple-light);
+    }
+    .confirm-card h2 { font-size: 1.7rem; font-weight: 700; margin-bottom: 10px; color: var(--purple-dark); }
+    .confirm-card p { color: var(--gray-600); line-height: 1.6; margin-bottom: 8px; }
+    .order-num {
+        background: var(--purple-pale);
+        border: 1px solid var(--purple-light);
+        border-radius: 8px;
+        padding: 12px 20px;
+        margin: 20px 0;
+        font-size: 0.9rem;
+        color: var(--purple-dark);
+    }
+    .order-num strong { color: var(--purple); font-size: 1.1rem; }
+    .pickup-code-block {
+        background: var(--purple);
+        color: white;
+        border-radius: 14px;
+        padding: 24px;
+        margin: 20px 0;
+        text-align: center;
+    }
+    .pickup-code-label {
+        font-size: 0.85rem;
+        opacity: 0.8;
+        margin-bottom: 8px;
+    }
+    .pickup-code-value {
+        font-size: 2.4rem;
+        font-weight: 900;
+        letter-spacing: 0.15em;
+        font-family: monospace;
+    }
+    .pickup-code-hint {
+        font-size: 0.78rem;
+        opacity: 0.75;
+        margin-top: 8px;
+    }
+    .next-steps { text-align: left; margin: 24px 0; }
+    .next-steps h4 { font-size: 0.95rem; font-weight: 700; margin-bottom: 12px; }
+    .step { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 10px; font-size: 0.88rem; color: var(--gray-700); }
+    .step-dot {
+        width: 24px; height: 24px;
+        background: var(--purple);
+        border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        color: white;
+        font-size: 0.72rem;
+        font-weight: 700;
+        flex-shrink: 0;
+        margin-top: 1px;
+    }
+    .btn-row { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 24px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="confirm-wrapper">
+    <div class="confirm-card">
+        <div class="check-circle">✓</div>
+        <h2>Order Confirmed!</h2>
+        <p>Thank you for shopping at <strong>The PillBox Pharmacy Ltd. &amp; Book Store</strong>. Your order has been placed successfully.</p>
+
+        {% if order %}
+        <div class="order-num">
+            Order Number: <strong>{{ order.id }}</strong>
+        </div>
+
+        <!-- Pickup / delivery confirmation code -->
+        <div class="pickup-code-block">
+            <p class="pickup-code-label">Your Confirmation Code</p>
+            <div class="pickup-code-value">{{ order.pickup_code }}</div>
+            <p class="pickup-code-hint">Show this code to your delivery driver to confirm receipt</p>
+        </div>
+
+        <p>
+            {% if order.fulfillment == 'pickup' %}
+            Your order will be ready for <strong>in-store pickup</strong> at our Savanna-la-mar branch.
+            {% else %}
+            Your order will be delivered to <strong>{{ order.address }}{% if order.parish %}, {{ order.parish }}{% endif %}</strong>.
+            {% endif %}
+        </p>
+        {% else %}
+        <div class="order-num">
+            Order Number: <strong>#PB-{{ range(10000, 99999) | random }}</strong>
+        </div>
+
+        <div class="pickup-code-block">
+            <p class="pickup-code-label">Your Confirmation Code</p>
+            <div class="pickup-code-value">PB----</div>
+            <p class="pickup-code-hint">Show this code to your delivery driver to confirm receipt</p>
+        </div>
+        {% endif %}
+
+        <p style="margin-top:12px;">A confirmation email will be sent to you shortly. You'll receive another notification with tracking information once your order ships.</p>
+
+        <div class="next-steps">
+            <h4>What happens next?</h4>
+            <div class="step"><div class="step-dot">1</div><span>We'll verify and process your order within 1 business hour.</span></div>
+            <div class="step"><div class="step-dot">2</div><span>Your items will be carefully packed and dispatched within 24 hours.</span></div>
+            <div class="step"><div class="step-dot">3</div><span>You'll receive a tracking number to monitor your delivery.</span></div>
+            <div class="step"><div class="step-dot">4</div><span>Estimated delivery: 2–4 business days islandwide.</span></div>
+        </div>
+        <div class="btn-row">
+            <a href="{{ url_for('index') }}" class="btn btn-primary">Continue Shopping</a>
+            <a href="{{ url_for('contact') }}" class="btn btn-outline">Need Help?</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

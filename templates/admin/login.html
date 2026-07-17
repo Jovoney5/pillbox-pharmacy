@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login – PillBox Pharmacy</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --purple: #7B2FBE; --purple-dark: #561F87; --purple-deep: #3A1060;
+            --purple-pale: #F3E8FF; --gray-200: #e4daf0; --gray-600: #5b5170;
+            --red: #dc2626;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, var(--purple-deep) 0%, var(--purple) 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .login-card {
+            background: white;
+            border-radius: 16px;
+            padding: 44px 40px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .login-logo {
+            text-align: center;
+            margin-bottom: 28px;
+        }
+        .login-logo img {
+            height: 64px;
+            border-radius: 8px;
+        }
+        .admin-badge {
+            display: inline-block;
+            background: var(--purple-pale);
+            color: var(--purple-dark);
+            border-radius: 20px;
+            padding: 4px 14px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin-top: 8px;
+        }
+        h2 { font-size: 1.5rem; font-weight: 700; color: #1a1230; margin-bottom: 6px; text-align: center; }
+        .subtitle { color: var(--gray-600); font-size: 0.88rem; text-align: center; margin-bottom: 28px; }
+        .form-group { margin-bottom: 18px; }
+        label { display: block; font-size: 0.83rem; font-weight: 600; color: #3d3356; margin-bottom: 6px; }
+        input {
+            width: 100%;
+            padding: 11px 14px;
+            border: 1.5px solid var(--gray-200);
+            border-radius: 8px;
+            font-size: 0.95rem;
+            outline: none;
+            font-family: inherit;
+            transition: border-color 0.15s;
+        }
+        input:focus { border-color: var(--purple); }
+        .btn-login {
+            width: 100%;
+            background: var(--purple);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 13px;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.18s;
+            margin-top: 6px;
+        }
+        .btn-login:hover { background: #9B59D0; }
+        .alert {
+            padding: 10px 14px;
+            border-radius: 8px;
+            margin-bottom: 18px;
+            font-size: 0.88rem;
+            font-weight: 500;
+        }
+        .alert-error { background: #fee2e2; color: #991b1b; border-left: 4px solid var(--red); }
+        .alert-success { background: var(--purple-pale); color: var(--purple-dark); border-left: 4px solid var(--purple); }
+        .back-link { display: block; text-align: center; margin-top: 20px; font-size: 0.85rem; color: var(--gray-600); text-decoration: none; }
+        .back-link:hover { color: var(--purple); }
+    </style>
+</head>
+<body>
+<div class="login-card">
+    <div class="login-logo">
+        <img src="{{ url_for('static', filename='screen.png') }}" alt="PillBox Pharmacy">
+        <div><span class="admin-badge">Admin Portal</span></div>
+    </div>
+    <h2>Admin Login</h2>
+    <p class="subtitle">Sign in to manage products and pricing</p>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+            <div class="alert alert-{{ category }}">{{ message }}</div>
+        {% endfor %}
+    {% endwith %}
+
+    <form method="post">
+        <div class="form-group">
+            <label>Username</label>
+            <input type="text" name="username" placeholder="admin" required autofocus>
+        </div>
+        <div class="form-group">
+            <label>Password</label>
+            <input type="password" name="password" placeholder="••••••••" required>
+        </div>
+        <button type="submit" class="btn-login">Sign In</button>
+    </form>
+    <a href="{{ url_for('index') }}" class="back-link">← Back to Store</a>
+</div>
+</body>
+</html>

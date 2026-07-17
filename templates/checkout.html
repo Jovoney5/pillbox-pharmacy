@@ -1,0 +1,317 @@
+{% extends "base.html" %}
+{% block title %}Checkout – The PillBox Pharmacy{% endblock %}
+
+{% block extra_css %}
+<style>
+    .checkout-layout { display: grid; grid-template-columns: 1fr 340px; gap: 28px; }
+    .form-card {
+        background: white;
+        border-radius: 14px;
+        box-shadow: var(--shadow);
+        padding: 28px;
+        margin-bottom: 20px;
+    }
+    .form-card h3 {
+        font-size: 1.05rem; font-weight: 700; margin-bottom: 20px;
+        padding-bottom: 12px; border-bottom: 2px solid var(--purple-pale);
+        color: var(--purple-dark);
+    }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 0.85rem; font-weight: 600; color: var(--gray-700); margin-bottom: 6px; }
+    .form-group input, .form-group select {
+        width: 100%;
+        padding: 10px 14px;
+        border: 1.5px solid var(--gray-200);
+        border-radius: 8px;
+        font-size: 0.92rem;
+        outline: none;
+        transition: border-color 0.15s;
+        font-family: inherit;
+    }
+    .form-group input:focus, .form-group select:focus { border-color: var(--purple); }
+    .full { grid-column: 1 / -1; }
+
+    /* ── Fulfillment picker ── */
+    .fulfillment-picker {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+    .fulfillment-card {
+        border: 2.5px solid var(--gray-200);
+        border-radius: 14px;
+        padding: 22px 18px;
+        cursor: pointer;
+        transition: border-color 0.18s, background 0.18s, box-shadow 0.18s;
+        text-align: center;
+        background: white;
+        user-select: none;
+    }
+    .fulfillment-card:hover {
+        border-color: var(--purple-light);
+        background: var(--purple-pale);
+    }
+    .fulfillment-card.selected {
+        border-color: var(--purple);
+        background: var(--purple-pale);
+        box-shadow: 0 0 0 4px rgba(123,47,190,0.12);
+    }
+    .fulfillment-card .fc-icon { font-size: 2rem; margin-bottom: 10px; display: block; }
+    .fulfillment-card .fc-title {
+        font-size: 1rem; font-weight: 700; color: var(--gray-900); margin-bottom: 4px;
+    }
+    .fulfillment-card.selected .fc-title { color: var(--purple-dark); }
+    .fulfillment-card .fc-sub {
+        font-size: 0.78rem; color: var(--gray-600);
+    }
+    .fulfillment-card.selected .fc-check {
+        display: inline-flex;
+    }
+    .fc-check {
+        display: none;
+        width: 22px; height: 22px;
+        border-radius: 50%;
+        background: var(--purple);
+        color: white;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.7rem;
+        font-weight: 700;
+        margin: 10px auto 0;
+    }
+
+    .payment-icons { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+    .pay-icon {
+        border: 1.5px solid var(--purple-light);
+        background: var(--purple-pale);
+        border-radius: 6px;
+        padding: 5px 10px;
+        font-size: 0.82rem;
+        font-weight: 700;
+        color: var(--purple-dark);
+    }
+
+    .order-summary {
+        background: white;
+        border-radius: 14px;
+        box-shadow: var(--shadow);
+        padding: 24px;
+        height: fit-content;
+        position: sticky;
+        top: 80px;
+        border-top: 4px solid var(--purple);
+    }
+    .order-summary h3 { font-size: 1.05rem; font-weight: 700; margin-bottom: 18px; }
+    .order-item { display: flex; gap: 12px; align-items: center; margin-bottom: 14px; }
+    .order-item img { width: 52px; height: 52px; border-radius: 6px; object-fit: cover; }
+    .order-item-info { flex: 1; }
+    .order-item-name { font-size: 0.85rem; font-weight: 600; }
+    .order-item-qty { font-size: 0.78rem; color: var(--gray-600); }
+    .order-item-price { font-size: 0.88rem; font-weight: 700; color: var(--purple); }
+    .divider { border: none; border-top: 1px solid var(--gray-200); margin: 16px 0; }
+    .summary-row { display: flex; justify-content: space-between; font-size: 0.9rem; color: var(--gray-700); margin-bottom: 10px; }
+    .summary-row.total { font-size: 1.05rem; font-weight: 700; color: var(--gray-900); border-top: 2px solid var(--gray-200); padding-top: 12px; margin-top: 4px; }
+    .place-order-btn {
+        width: 100%;
+        background: var(--purple);
+        color: white;
+        border: none;
+        border-radius: 10px;
+        padding: 14px;
+        font-size: 1rem;
+        font-weight: 700;
+        cursor: pointer;
+        margin-top: 16px;
+        transition: background 0.18s;
+    }
+    .place-order-btn:hover { background: var(--purple-light); }
+
+    @media (max-width: 700px) {
+        .checkout-layout { grid-template-columns: 1fr; }
+        .form-row { grid-template-columns: 1fr; }
+        .order-summary { position: static; }
+        .fulfillment-picker { grid-template-columns: 1fr; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<h2 style="font-size:1.6rem; font-weight:700; margin-bottom:24px;">Checkout</h2>
+
+<form action="{{ url_for('checkout') }}" method="post" id="checkoutForm">
+<input type="hidden" name="fulfillment" id="fulfillmentInput" value="delivery">
+
+<div class="checkout-layout">
+    <div>
+
+        <!-- ── Fulfillment Picker ── -->
+        <div class="form-card">
+            <h3>📦 How would you like to receive your order?</h3>
+            <div class="fulfillment-picker">
+                <div class="fulfillment-card selected" id="fc-delivery" onclick="selectFulfillment('delivery')">
+                    <span class="fc-icon">🚚</span>
+                    <div class="fc-title">Home Delivery</div>
+                    <div class="fc-sub">We bring it to your door</div>
+                    <div class="fc-check">✓</div>
+                </div>
+                <div class="fulfillment-card" id="fc-pickup" onclick="selectFulfillment('pickup')">
+                    <span class="fc-icon">🏪</span>
+                    <div class="fc-title">In-Store Pickup</div>
+                    <div class="fc-sub">Pick up at our pharmacy</div>
+                    <div class="fc-check">✓</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Contact Information ── -->
+        <div class="form-card">
+            <h3>📧 Contact Information</h3>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>First Name</label>
+                    <input type="text" name="first_name" placeholder="Jane" required>
+                </div>
+                <div class="form-group">
+                    <label>Last Name</label>
+                    <input type="text" name="last_name" placeholder="Brown" required>
+                </div>
+                <div class="form-group full">
+                    <label>Email Address</label>
+                    <input type="email" name="email" placeholder="jane@example.com" required>
+                </div>
+                <div class="form-group full">
+                    <label>Phone Number</label>
+                    <input type="tel" name="phone" placeholder="(876) 000-0000">
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Shipping Address (hidden for pickup) ── -->
+        <div class="form-card" id="shippingCard">
+            <h3>🚚 Shipping Address</h3>
+            <div class="form-row">
+                <div class="form-group full">
+                    <label>Street Address</label>
+                    <input type="text" name="address" id="addressInput" placeholder="123 Main Street">
+                </div>
+                <div class="form-group full">
+                    <label>Apt / Unit (optional)</label>
+                    <input type="text" placeholder="Apt 4B">
+                </div>
+                <div class="form-group">
+                    <label>City / Town</label>
+                    <input type="text" placeholder="Kingston">
+                </div>
+                <div class="form-group">
+                    <label>Parish</label>
+                    <select name="parish" id="parishInput">
+                        <option value="">Select parish</option>
+                        <option>Kingston</option>
+                        <option>St. Andrew</option>
+                        <option>St. Thomas</option>
+                        <option>Portland</option>
+                        <option>St. Mary</option>
+                        <option>St. Ann</option>
+                        <option>Trelawny</option>
+                        <option>St. James</option>
+                        <option>Hanover</option>
+                        <option selected>Westmoreland</option>
+                        <option>St. Elizabeth</option>
+                        <option>Manchester</option>
+                        <option>Clarendon</option>
+                        <option>St. Catherine</option>
+                    </select>
+                </div>
+                <div class="form-group full">
+                    <label>Country</label>
+                    <select>
+                        <option>Jamaica</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Payment ── -->
+        <div class="form-card">
+            <h3>💳 Payment</h3>
+            <div class="payment-icons">
+                <span class="pay-icon">VISA</span>
+                <span class="pay-icon">Mastercard</span>
+                <span class="pay-icon">NCB</span>
+                <span class="pay-icon">SCOTIABANK</span>
+            </div>
+            <div class="form-row">
+                <div class="form-group full">
+                    <label>Card Number</label>
+                    <input type="text" placeholder="1234 5678 9012 3456" maxlength="19" required>
+                </div>
+                <div class="form-group full">
+                    <label>Cardholder Name</label>
+                    <input type="text" placeholder="Jane Brown" required>
+                </div>
+                <div class="form-group">
+                    <label>Expiry Date</label>
+                    <input type="text" placeholder="MM / YY" maxlength="7" required>
+                </div>
+                <div class="form-group">
+                    <label>CVV</label>
+                    <input type="text" placeholder="123" maxlength="4" required>
+                </div>
+            </div>
+            <p style="font-size:0.78rem; color:var(--gray-600);">🔒 Your payment info is encrypted and secure.</p>
+        </div>
+    </div>
+
+    <!-- ── Order Summary ── -->
+    <div class="order-summary">
+        <h3>Order Summary</h3>
+        {% for item in cart_items %}
+        <div class="order-item">
+            <img src="{{ item.img }}" alt="{{ item.name }}">
+            <div class="order-item-info">
+                <div class="order-item-name">{{ item.name }}</div>
+                <div class="order-item-qty">Qty: {{ item.qty }}</div>
+            </div>
+            <div class="order-item-price">JMD{{ "%.2f"|format(item.price * item.qty) }}</div>
+        </div>
+        {% endfor %}
+        <hr class="divider">
+        <div class="summary-row"><span>Subtotal</span><span>JMD{{ total }}</span></div>
+        <div class="summary-row" id="shippingRow"><span>Shipping</span><span style="color:var(--purple);">{{ 'FREE' if total >= 5000 else 'JMD500' }}</span></div>
+        <div class="summary-row"><span>GCT (15%)</span><span>JMD{{ "%.2f"|format(total * 0.15) }}</span></div>
+        <div class="summary-row total">
+            <span>Total</span>
+            <span>JMD{{ "%.2f"|format(total + (0 if total >= 5000 else 500) + total * 0.15) }}</span>
+        </div>
+        <button type="submit" class="place-order-btn">✓ Place Order</button>
+    </div>
+</div>
+</form>
+
+<script>
+function selectFulfillment(type) {
+    document.getElementById('fulfillmentInput').value = type;
+
+    document.getElementById('fc-delivery').classList.toggle('selected', type === 'delivery');
+    document.getElementById('fc-pickup').classList.toggle('selected', type === 'pickup');
+
+    const shippingCard = document.getElementById('shippingCard');
+    const shippingRow  = document.getElementById('shippingRow');
+    const addressInput = document.getElementById('addressInput');
+
+    if (type === 'pickup') {
+        shippingCard.style.display = 'none';
+        shippingRow.style.display  = 'none';
+        if (addressInput) addressInput.required = false;
+    } else {
+        shippingCard.style.display = '';
+        shippingRow.style.display  = '';
+        if (addressInput) addressInput.required = true;
+    }
+}
+// Init
+selectFulfillment('delivery');
+</script>
+{% endblock %}

@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% block title %}Contact Us – The PillBox Pharmacy{% endblock %}
+
+{% block extra_css %}
+<style>
+    .contact-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+    .contact-info h2 { font-size: 1.6rem; font-weight: 700; margin-bottom: 12px; color: var(--purple-dark); }
+    .contact-info p { color: var(--gray-600); line-height: 1.7; margin-bottom: 24px; }
+    .info-item { display: flex; gap: 14px; align-items: flex-start; margin-bottom: 18px; }
+    .info-icon {
+        width: 44px; height: 44px;
+        background: var(--purple-pale);
+        border: 2px solid var(--purple-light);
+        border-radius: 10px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.2rem;
+        flex-shrink: 0;
+    }
+    .info-text h5 { font-size: 0.88rem; font-weight: 700; color: var(--gray-900); margin-bottom: 3px; }
+    .info-text p { font-size: 0.88rem; color: var(--gray-600); margin: 0; line-height: 1.5; }
+
+    .hours-table { background: white; border-radius: 10px; padding: 18px; box-shadow: var(--shadow); margin-top: 24px; border-left: 4px solid var(--purple); }
+    .hours-table h4 { font-size: 0.95rem; font-weight: 700; margin-bottom: 12px; color: var(--purple-dark); }
+    .hours-row { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid var(--gray-100); font-size: 0.85rem; }
+    .hours-row:last-child { border-bottom: none; }
+    .hours-row .day { color: var(--gray-700); font-weight: 500; }
+    .hours-row .time { color: var(--purple); font-weight: 600; }
+    .closed { color: var(--red) !important; }
+
+    .form-card { background: white; border-radius: 14px; box-shadow: var(--shadow); padding: 28px; border-top: 4px solid var(--purple); }
+    .form-card h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 20px; color: var(--purple-dark); }
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 0.85rem; font-weight: 600; color: var(--gray-700); margin-bottom: 6px; }
+    .form-group input, .form-group select, .form-group textarea {
+        width: 100%;
+        padding: 10px 14px;
+        border: 1.5px solid var(--gray-200);
+        border-radius: 8px;
+        font-size: 0.92rem;
+        outline: none;
+        transition: border-color 0.15s;
+        font-family: inherit;
+    }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--purple); }
+    .form-group textarea { resize: vertical; min-height: 110px; }
+    .submit-btn {
+        width: 100%;
+        background: var(--purple);
+        color: white;
+        border: none;
+        border-radius: 10px;
+        padding: 13px;
+        font-size: 0.98rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: background 0.18s;
+    }
+    .submit-btn:hover { background: var(--purple-light); }
+
+    .map-placeholder {
+        background: var(--purple-pale);
+        border-radius: 12px;
+        height: 200px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-top: 24px;
+        color: var(--purple-dark);
+        font-size: 0.9rem;
+        border: 2px dashed var(--purple-light);
+        font-weight: 600;
+    }
+
+    @media (max-width: 650px) { .contact-layout { grid-template-columns: 1fr; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<h2 style="font-size:1.6rem; font-weight:700; margin-bottom:6px; color:var(--purple-dark);">Contact Us</h2>
+<p style="color:var(--gray-600); margin-bottom:28px;">We'd love to hear from you — reach out any time.</p>
+
+<div class="contact-layout">
+    <div class="contact-info">
+        <h2>Get in Touch</h2>
+        <p>Have a question about a product, need pharmacy advice, or want to place a bulk order? Our friendly team is here to help.</p>
+
+        <div class="info-item">
+            <div class="info-icon">📍</div>
+            <div class="info-text"><h5>Visit Us</h5><p>123 Health Avenue<br>Kingston, Jamaica</p></div>
+        </div>
+        <div class="info-item">
+            <div class="info-icon">📞</div>
+            <div class="info-text"><h5>Call Us</h5><p>(876) 555-1234</p></div>
+        </div>
+        <div class="info-item">
+            <div class="info-icon">📧</div>
+            <div class="info-text"><h5>Email Us</h5><p>hello@pillboxpharmacy.com</p></div>
+        </div>
+        <div class="info-item">
+            <div class="info-icon">💬</div>
+            <div class="info-text"><h5>WhatsApp</h5><p>Message us on (876) 555-1234 — Mon–Fri, 9am–6pm.</p></div>
+        </div>
+
+        <div class="hours-table">
+            <h4>🕐 Store Hours</h4>
+            <div class="hours-row"><span class="day">Monday</span><span class="time">8:00am – 9:00pm</span></div>
+            <div class="hours-row"><span class="day">Tuesday</span><span class="time">8:00am – 9:00pm</span></div>
+            <div class="hours-row"><span class="day">Wednesday</span><span class="time">8:00am – 9:00pm</span></div>
+            <div class="hours-row"><span class="day">Thursday</span><span class="time">8:00am – 9:00pm</span></div>
+            <div class="hours-row"><span class="day">Friday</span><span class="time">8:00am – 9:00pm</span></div>
+            <div class="hours-row"><span class="day">Saturday</span><span class="time">9:00am – 7:00pm</span></div>
+            <div class="hours-row"><span class="day">Sunday</span><span class="time closed">Closed</span></div>
+        </div>
+
+        <div class="map-placeholder">📍 123 Health Ave, Kingston, Jamaica</div>
+    </div>
+
+    <div class="form-card">
+        <h3>✉️ Send Us a Message</h3>
+        <form action="{{ url_for('contact') }}" method="post">
+            <div class="form-group">
+                <label>Your Name</label>
+                <input type="text" name="name" placeholder="Jane Brown" required>
+            </div>
+            <div class="form-group">
+                <label>Email Address</label>
+                <input type="email" name="email" placeholder="jane@example.com" required>
+            </div>
+            <div class="form-group">
+                <label>Subject</label>
+                <select name="subject">
+                    <option>General Inquiry</option>
+                    <option>Product Question</option>
+                    <option>Order Issue</option>
+                    <option>Pharmacy Consultation</option>
+                    <option>Bulk Order</option>
+                    <option>Other</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Your Message</label>
+                <textarea name="message" placeholder="How can we help you?" required></textarea>
+            </div>
+            <button type="submit" class="submit-btn">Send Message →</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

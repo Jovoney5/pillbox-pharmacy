@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orders – PillBox Admin</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --purple: #7B2FBE; --purple-light: #9B59D0; --purple-dark: #561F87;
+            --purple-deep: #3A1060; --purple-pale: #F3E8FF;
+            --white: #fff; --gray-50: #faf9fc; --gray-100: #f2eef8;
+            --gray-200: #e4daf0; --gray-600: #5b5170; --gray-700: #3d3356;
+            --gray-900: #1a1230; --red: #dc2626; --green: #16a34a;
+            --shadow: 0 2px 8px rgba(90,30,150,0.10);
+        }
+        body { font-family: 'Inter', sans-serif; background: var(--gray-50); color: var(--gray-900); }
+        a { text-decoration: none; color: inherit; }
+
+        .admin-layout { display: flex; min-height: 100vh; }
+        .sidebar {
+            width: 240px; flex-shrink: 0;
+            background: var(--purple-deep); color: white;
+            padding: 24px 16px;
+            position: sticky; top: 0; height: 100vh; overflow-y: auto;
+        }
+        .sidebar-logo { margin-bottom: 32px; }
+        .sidebar-logo img { height: 48px; border-radius: 6px; background: white; padding: 3px; }
+        .sidebar-logo p { font-size: 0.72rem; color: rgba(255,255,255,0.5); margin-top: 6px; }
+        .sidebar-nav a {
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px 12px; border-radius: 8px;
+            font-size: 0.88rem; font-weight: 500;
+            color: rgba(255,255,255,0.75);
+            margin-bottom: 4px; transition: background 0.15s, color 0.15s;
+        }
+        .sidebar-nav a:hover, .sidebar-nav a.active {
+            background: rgba(255,255,255,0.12); color: white;
+        }
+        .sidebar-nav .icon { font-size: 1rem; width: 20px; text-align: center; }
+        .sidebar-divider { border: none; border-top: 1px solid rgba(255,255,255,0.12); margin: 16px 0; }
+
+        .admin-main { flex: 1; padding: 32px; overflow-x: auto; }
+        .admin-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 28px; flex-wrap: wrap; gap: 14px;
+        }
+        .admin-header h1 { font-size: 1.5rem; font-weight: 700; }
+        .admin-header p { color: var(--gray-600); font-size: 0.88rem; margin-top: 2px; }
+
+        .alert { padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; font-size: 0.88rem; font-weight: 500; }
+        .alert-success { background: var(--purple-pale); color: var(--purple-dark); border-left: 4px solid var(--purple); }
+
+        .table-card { background: white; border-radius: 14px; box-shadow: var(--shadow); overflow: hidden; }
+        .table-top {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 18px 22px; border-bottom: 1px solid var(--gray-200); flex-wrap: wrap; gap: 12px;
+        }
+        .table-top h2 { font-size: 1rem; font-weight: 700; }
+        .search-input {
+            padding: 8px 14px; border: 1.5px solid var(--gray-200); border-radius: 8px;
+            font-size: 0.85rem; outline: none; font-family: inherit; width: 220px;
+        }
+        .search-input:focus { border-color: var(--purple); }
+
+        table { width: 100%; border-collapse: collapse; }
+        th {
+            background: var(--gray-100); text-align: left;
+            padding: 11px 14px; font-size: 0.75rem; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 0.05em; color: var(--gray-600);
+            white-space: nowrap;
+        }
+        td { padding: 12px 14px; border-bottom: 1px solid var(--gray-100); font-size: 0.84rem; vertical-align: middle; }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: var(--gray-50); }
+
+        .status-badge {
+            display: inline-block; padding: 3px 9px;
+            border-radius: 20px; font-size: 0.7rem; font-weight: 700;
+            color: white; white-space: nowrap; margin-right: 6px;
+        }
+        .status-select {
+            padding: 5px 8px; border: 1.5px solid var(--gray-200);
+            border-radius: 6px; font-size: 0.78rem; background: white;
+            cursor: pointer; font-family: inherit; color: var(--gray-900);
+        }
+        .status-select:focus { border-color: var(--purple); outline: none; }
+
+        .toast {
+            position: fixed; bottom: 24px; right: 24px;
+            background: #1a1230; color: white;
+            padding: 12px 20px; border-radius: 10px;
+            font-size: 0.85rem; font-weight: 600; z-index: 9999;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+            display: none;
+        }
+
+        @media (max-width: 900px) {
+            .sidebar { width: 60px; padding: 16px 8px; }
+            .sidebar-logo p, .sidebar-nav span { display: none; }
+            .sidebar-logo img { height: 36px; }
+            .admin-main { padding: 20px 14px; }
+        }
+    </style>
+</head>
+<body>
+<div class="admin-layout">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-logo">
+            <img src="{{ url_for('static', filename='screen.png') }}" alt="PillBox">
+            <p>Admin Panel</p>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="{{ url_for('admin_dashboard') }}">
+                <span class="icon">📦</span><span>Products</span>
+            </a>
+            <a href="{{ url_for('admin_add_product') }}">
+                <span class="icon">➕</span><span>Add Product</span>
+            </a>
+            <a href="{{ url_for('admin_orders') }}" class="active">
+                <span class="icon">📋</span><span>Orders</span>
+            </a>
+            <a href="{{ url_for('admin_stats') }}">
+                <span class="icon">📊</span><span>Statistics</span>
+            </a>
+            <a href="{{ url_for('admin_staff') }}">
+                <span class="icon">👥</span><span>Staff</span>
+            </a>
+            <a href="/admin/ads"><span class="icon">📢</span><span>Ad Manager</span></a>
+            <hr class="sidebar-divider">
+            <a href="{{ url_for('index') }}" target="_blank">
+                <span class="icon">🏪</span><span>View Store</span>
+            </a>
+            <a href="{{ url_for('admin_logout') }}">
+                <span class="icon">🚪</span><span>Logout</span>
+            </a>
+        </nav>
+    </aside>
+
+    <!-- Main -->
+    <div class="admin-main">
+        <div class="admin-header">
+            <div>
+                <h1>All Orders</h1>
+                <p>View and manage customer orders</p>
+            </div>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endwith %}
+
+        <div class="table-card">
+            <div class="table-top">
+                <h2>Orders ({{ orders|length }})</h2>
+                <input type="text" class="search-input" id="orderSearch" placeholder="Search orders...">
+            </div>
+            <div style="overflow-x:auto;">
+            <table id="ordersTable">
+                <thead>
+                    <tr>
+                        <th>Order ID</th>
+                        <th>Customer Name</th>
+                        <th>Email</th>
+                        <th>Date</th>
+                        <th>Items</th>
+                        <th>Total</th>
+                        <th>Fulfillment</th>
+                        <th>Parish</th>
+                        <th>Status</th>
+                        <th>Worker</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for o in orders | reverse %}
+                {% set sc = {
+                    'pending': '#F59E0B',
+                    'processing': '#3B82F6',
+                    'out_for_delivery': '#F97316',
+                    'delivered': '#16A34A',
+                    'cancelled': '#DC2626',
+                    'refunded': '#7B2FBE',
+                    'returned': '#6B7280'
+                } %}
+                <tr data-search="{{ o.id.lower() }} {{ o.customer_name.lower() }} {{ o.customer_email.lower() }}">
+                    <td><strong>{{ o.id }}</strong></td>
+                    <td>{{ o.customer_name }}</td>
+                    <td style="color:var(--gray-600);font-size:0.78rem;">{{ o.customer_email }}</td>
+                    <td style="white-space:nowrap;color:var(--gray-600);font-size:0.78rem;">{{ o.created_at[:10] if o.created_at else '—' }}</td>
+                    <td style="text-align:center;">{{ o.items|length }}</td>
+                    <td style="font-weight:700;color:var(--purple);white-space:nowrap;">JMD {{ "{:,.2f}".format(o.total) }}</td>
+                    <td>
+                        {% if o.fulfillment == 'pickup' %}🏪 Pickup{% else %}🚚 Delivery{% endif %}
+                    </td>
+                    <td>{{ o.parish or '—' }}</td>
+                    <td>
+                        <span class="status-badge" id="badge-{{ o.id }}" style="background:{{ sc.get(o.status, '#6B7280') }};">
+                            {{ o.status.replace('_',' ').title() }}
+                        </span>
+                        <select class="status-select" onchange="updateStatus('{{ o.id }}', this)">
+                            <option value="pending"           {{ 'selected' if o.status == 'pending' }}>Pending</option>
+                            <option value="processing"        {{ 'selected' if o.status == 'processing' }}>Processing</option>
+                            <option value="out_for_delivery"  {{ 'selected' if o.status == 'out_for_delivery' }}>Out for Delivery</option>
+                            <option value="delivered"         {{ 'selected' if o.status == 'delivered' }}>Delivered</option>
+                            <option value="cancelled"         {{ 'selected' if o.status == 'cancelled' }}>Cancelled</option>
+                            <option value="refunded"          {{ 'selected' if o.status == 'refunded' }}>Refunded</option>
+                            <option value="returned"          {{ 'selected' if o.status == 'returned' }}>Returned</option>
+                        </select>
+                    </td>
+                    <td style="font-size:0.78rem;color:var(--gray-600);">
+                        {{ o.delivery_worker_id or '—' }}
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="10" style="text-align:center;color:var(--gray-600);padding:32px;">No orders yet.</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const STATUS_COLORS = {
+    pending:          '#F59E0B',
+    processing:       '#3B82F6',
+    out_for_delivery: '#F97316',
+    delivered:        '#16A34A',
+    cancelled:        '#DC2626',
+    refunded:         '#7B2FBE',
+    returned:         '#6B7280',
+};
+
+function updateStatus(orderId, selectEl) {
+    const status = selectEl.value;
+    const fd = new FormData();
+    fd.append('status', status);
+    fetch(`/admin/orders/${orderId}/status`, { method: 'POST', body: fd })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                const badge = document.getElementById(`badge-${orderId}`);
+                if (badge) {
+                    badge.textContent = status.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+                    badge.style.background = STATUS_COLORS[status] || '#6B7280';
+                }
+                showToast('Status updated to: ' + status.replace(/_/g,' '));
+            } else {
+                showToast('Error updating status', true);
+            }
+        })
+        .catch(() => showToast('Network error', true));
+}
+
+function showToast(msg, isError) {
+    const t = document.getElementById('toast');
+    t.textContent = (isError ? '✗ ' : '✓ ') + msg;
+    t.style.display = 'block';
+    t.style.background = isError ? '#DC2626' : '#1a1230';
+    setTimeout(() => { t.style.display = 'none'; }, 2500);
+}
+
+document.getElementById('orderSearch').addEventListener('input', function() {
+    const q = this.value.toLowerCase();
+    document.querySelectorAll('#ordersTable tbody tr').forEach(row => {
+        const text = row.dataset.search || '';
+        row.style.display = text.includes(q) ? '' : 'none';
+    });
+});
+</script>
+</body>
+</html>

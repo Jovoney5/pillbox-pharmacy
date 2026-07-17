@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+{% block title %}Shop – The PillBox Pharmacy{% endblock %}
+
+{% block extra_css %}
+<style>
+    .shop-layout { display: grid; grid-template-columns: 220px 1fr; gap: 28px; }
+
+    .sidebar {
+        background: white;
+        border-radius: 12px;
+        padding: 22px;
+        box-shadow: var(--shadow);
+        height: fit-content;
+        position: sticky;
+        top: 80px;
+    }
+    .sidebar h3 { font-size: 1rem; font-weight: 700; margin-bottom: 16px; color: var(--gray-900); }
+    .sidebar a {
+        display: block;
+        padding: 9px 12px;
+        border-radius: 8px;
+        font-size: 0.88rem;
+        font-weight: 500;
+        color: var(--gray-700);
+        margin-bottom: 4px;
+        transition: background 0.15s;
+    }
+    .sidebar a:hover { background: var(--purple-pale); color: var(--purple-dark); }
+    .sidebar a.active { background: var(--purple); color: white; }
+
+    .shop-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 22px;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    .shop-header h2 { font-size: 1.4rem; font-weight: 700; }
+    .count-label { color: var(--gray-600); font-size: 0.88rem; }
+
+    .products-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(195px, 1fr));
+        gap: 18px;
+    }
+    .product-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: var(--shadow);
+        overflow: hidden;
+        transition: transform 0.18s, box-shadow 0.18s;
+    }
+    .product-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); }
+    .product-img { width: 100%; height: 170px; object-fit: cover; display: block; }
+    .product-body { padding: 12px 14px 14px; }
+    .product-cat {
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--purple);
+        font-weight: 600;
+        margin-bottom: 4px;
+    }
+    .product-name { font-weight: 600; font-size: 0.92rem; margin-bottom: 4px; color: var(--gray-900); line-height: 1.3; }
+    .product-desc { font-size: 0.78rem; color: var(--gray-600); margin-bottom: 10px; line-height: 1.4; }
+    .product-footer { display: flex; justify-content: space-between; align-items: center; }
+    .product-price { font-size: 1.05rem; font-weight: 700; color: var(--purple); }
+    .add-btn {
+        background: var(--purple);
+        color: white;
+        border: none;
+        border-radius: 6px;
+        padding: 7px 12px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.18s;
+    }
+    .add-btn:hover { background: var(--purple-light); }
+
+    .empty-state { text-align: center; padding: 60px 20px; color: var(--gray-600); }
+    .empty-state .icon { font-size: 3rem; margin-bottom: 16px; }
+    .empty-state h3 { font-size: 1.2rem; margin-bottom: 8px; color: var(--gray-700); }
+
+    @media (max-width: 650px) {
+        .shop-layout { grid-template-columns: 1fr; }
+        .sidebar { position: static; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="shop-layout">
+    <aside class="sidebar">
+        <h3>Categories</h3>
+        {% for key, label in categories.items() %}
+        <a href="{{ url_for('shop') }}?category={{ key }}" class="{{ 'active' if active_category == key else '' }}">
+            {{ label }}
+        </a>
+        {% endfor %}
+    </aside>
+
+    <div>
+        <div class="shop-header">
+            <div>
+                <h2>{{ categories.get(active_category, 'All Products') }}</h2>
+                <span class="count-label">{{ products|length }} product{{ 's' if products|length != 1 else '' }} found{% if search %} for "{{ search }}"{% endif %}</span>
+            </div>
+        </div>
+
+        {% if products %}
+        <div class="products-grid">
+            {% for product in products %}
+            <div class="product-card">
+                <a href="{{ url_for('product', product_id=product.id) }}">
+                    <img src="{{ product.img }}" alt="{{ product.name }}" class="product-img">
+                </a>
+                <div class="product-body">
+                    <div class="product-cat">{{ categories.get(product.category, product.category) }}</div>
+                    <div class="product-name">{{ product.name }}</div>
+                    <div class="product-desc">{{ product.description }}</div>
+                    <div class="product-footer">
+                        <div>
+                            {% if product.discount > 0 %}
+                            <div style="font-size:0.72rem;text-decoration:line-through;color:var(--gray-600);">JMD {{ "%.2f"|format(product.original_price) }}</div>
+                            <span class="product-price">JMD {{ "%.2f"|format(product.effective_price) }}</span>
+                            <span style="background:#dcfce7;color:#16a34a;border-radius:8px;padding:1px 7px;font-size:0.7rem;font-weight:700;margin-left:3px;">-{{ product.discount }}%</span>
+                            {% else %}
+                            <span class="product-price">JMD {{ "%.2f"|format(product.effective_price) }}</span>
+                            {% endif %}
+                        </div>
+                        <button class="add-btn" onclick="addToCart({{ product.id }}, this)">+ Cart</button>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <div class="icon">🔍</div>
+            <h3>No products found</h3>
+            <p>Try a different search term or category.</p>
+            <br>
+            <a href="{{ url_for('shop') }}" class="btn btn-primary">Clear Filters</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function addToCart(productId, btn) {
+    btn.disabled = true;
+    btn.textContent = '...';
+    fetch(`/add_to_cart/${productId}`, { method: 'POST' })
+        .then(r => r.json())
+        .then(data => {
+            btn.textContent = '✓ Added';
+            btn.style.background = 'var(--purple-dark)';
+            const badge = document.querySelector('.cart-badge');
+            if (badge) { badge.textContent = data.count; }
+            else {
+                const cartLink = document.querySelector('.nav-cart');
+                const b = document.createElement('span');
+                b.className = 'cart-badge';
+                b.textContent = data.count;
+                cartLink.insertBefore(b, cartLink.lastChild);
+            }
+            setTimeout(() => { btn.textContent = '+ Cart'; btn.style.background = ''; btn.disabled = false; }, 1800);
+        });
+}
+</script>
+{% endblock %}

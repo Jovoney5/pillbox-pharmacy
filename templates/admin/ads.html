@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ad Manager – PillBox Admin</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --purple: #7B2FBE; --purple-light: #9B59D0; --purple-dark: #561F87;
+            --purple-deep: #3A1060; --purple-pale: #F3E8FF;
+            --gray-50: #faf9fc; --gray-100: #f2eef8; --gray-200: #e4daf0;
+            --gray-600: #5b5170; --gray-700: #3d3356; --gray-900: #1a1230;
+            --red: #dc2626; --green: #16a34a; --blue: #2563eb;
+            --shadow: 0 2px 8px rgba(90,30,150,0.10);
+            --shadow-lg: 0 8px 30px rgba(90,30,150,0.16);
+        }
+        body { font-family: 'Inter', sans-serif; background: var(--gray-50); color: var(--gray-900); }
+        a { text-decoration: none; color: inherit; }
+
+        .admin-layout { display: flex; min-height: 100vh; }
+        .sidebar {
+            width: 240px; flex-shrink: 0; background: var(--purple-deep); color: white;
+            padding: 24px 16px; position: sticky; top: 0; height: 100vh; overflow-y: auto;
+        }
+        .sidebar-logo { margin-bottom: 32px; }
+        .sidebar-logo img { height: 48px; border-radius: 6px; background: white; padding: 3px; }
+        .sidebar-logo p { font-size: 0.72rem; color: rgba(255,255,255,0.5); margin-top: 6px; }
+        .sidebar-nav a {
+            display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+            border-radius: 8px; font-size: 0.88rem; font-weight: 500;
+            color: rgba(255,255,255,0.75); margin-bottom: 4px; transition: background 0.15s;
+        }
+        .sidebar-nav a:hover, .sidebar-nav a.active { background: rgba(255,255,255,0.12); color: white; }
+        .sidebar-nav .icon { font-size: 1rem; width: 20px; text-align: center; }
+        .sidebar-divider { border: none; border-top: 1px solid rgba(255,255,255,0.12); margin: 16px 0; }
+
+        .admin-main { flex: 1; padding: 32px; }
+        .page-title { font-size: 1.5rem; font-weight: 700; margin-bottom: 4px; }
+        .page-sub { color: var(--gray-600); font-size: 0.88rem; margin-bottom: 28px; }
+
+        .alert { padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; font-size: 0.88rem; font-weight: 500; }
+        .alert-success { background: var(--purple-pale); color: var(--purple-dark); border-left: 4px solid var(--purple); }
+        .alert-error { background: #fee2e2; color: #991b1b; border-left: 4px solid var(--red); }
+
+        /* ── ACTIVE ADS ── */
+        .section-heading {
+            font-size: 1rem; font-weight: 700; margin-bottom: 14px;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .section-heading .badge {
+            background: var(--purple-pale); color: var(--purple-dark);
+            border-radius: 20px; padding: 2px 10px; font-size: 0.75rem; font-weight: 700;
+        }
+
+        .active-ads-grid {
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 36px;
+        }
+        .active-ad-card {
+            background: white; border-radius: 14px; box-shadow: var(--shadow);
+            overflow: hidden; border: 2px solid var(--purple-light); position: relative;
+        }
+        .active-ad-img { width: 100%; height: 140px; object-fit: cover; display: block; }
+        .active-ad-body { padding: 14px; }
+        .active-ad-name { font-weight: 700; font-size: 0.95rem; margin-bottom: 6px; }
+        .active-ad-timer {
+            background: var(--purple-pale); border-radius: 8px; padding: 8px 12px;
+            margin-bottom: 10px; display: flex; align-items: center; gap: 8px;
+        }
+        .timer-label { font-size: 0.72rem; color: var(--gray-600); font-weight: 600; }
+        .timer-value { font-size: 1rem; font-weight: 800; color: var(--purple); font-family: monospace; }
+        .timer-expires { font-size: 0.7rem; color: var(--gray-600); margin-top: 2px; }
+        .active-ad-slot {
+            position: absolute; top: 8px; left: 8px;
+            background: var(--purple); color: white;
+            border-radius: 6px; padding: 3px 10px;
+            font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+        }
+        .btn-remove {
+            display: flex; align-items: center; justify-content: center; gap: 6px;
+            width: 100%; padding: 9px; border: none; border-radius: 8px;
+            background: #fee2e2; color: var(--red); font-size: 0.82rem; font-weight: 700;
+            cursor: pointer; transition: background 0.15s; font-family: inherit;
+        }
+        .btn-remove:hover { background: #fecaca; }
+
+        .empty-ads {
+            background: white; border-radius: 14px; padding: 36px; text-align: center;
+            box-shadow: var(--shadow); margin-bottom: 36px; color: var(--gray-600);
+            border: 2px dashed var(--gray-200);
+        }
+        .empty-ads .icon { font-size: 2.4rem; margin-bottom: 10px; }
+        .empty-ads p { font-size: 0.9rem; }
+
+        /* ── PRODUCT PICKER ── */
+        .picker-card { background: white; border-radius: 14px; box-shadow: var(--shadow); overflow: hidden; }
+        .picker-header {
+            padding: 18px 22px; border-bottom: 1px solid var(--gray-200);
+            display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+        }
+        .picker-header h3 { font-size: 1rem; font-weight: 700; }
+        .picker-search {
+            padding: 8px 14px; border: 1.5px solid var(--gray-200); border-radius: 8px;
+            font-size: 0.85rem; outline: none; font-family: inherit; width: 220px;
+        }
+        .picker-search:focus { border-color: var(--purple); }
+
+        .products-table { width: 100%; border-collapse: collapse; }
+        .products-table th {
+            background: var(--gray-100); text-align: left; padding: 10px 16px;
+            font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.05em; color: var(--gray-600);
+        }
+        .products-table td {
+            padding: 12px 16px; border-bottom: 1px solid var(--gray-100);
+            font-size: 0.88rem; vertical-align: middle;
+        }
+        .products-table tr:last-child td { border-bottom: none; }
+        .products-table tr:hover td { background: var(--gray-50); }
+        .products-table tr.is-active td { background: #f0fdf4; }
+
+        .prod-thumb { width: 48px; height: 48px; border-radius: 8px; object-fit: cover; border: 1px solid var(--gray-200); }
+        .prod-name { font-weight: 600; }
+        .prod-cat { font-size: 0.75rem; color: var(--gray-600); margin-top: 2px; }
+        .price-col { font-weight: 700; color: var(--purple); white-space: nowrap; }
+        .active-tag {
+            background: #dcfce7; color: var(--green); border-radius: 20px;
+            padding: 3px 10px; font-size: 0.72rem; font-weight: 700; white-space: nowrap;
+        }
+
+        /* Duration picker — the blue button row */
+        .duration-picker { display: flex; gap: 6px; flex-wrap: wrap; }
+        .dur-btn {
+            padding: 6px 12px; border-radius: 20px; border: 2px solid #bfdbfe;
+            background: #eff6ff; color: var(--blue); font-size: 0.75rem; font-weight: 700;
+            cursor: pointer; transition: all 0.15s; font-family: inherit; white-space: nowrap;
+        }
+        .dur-btn:hover { background: var(--blue); color: white; border-color: var(--blue); }
+        .dur-btn.loading { opacity: 0.5; pointer-events: none; }
+        .dur-btn.done { background: var(--green); color: white; border-color: var(--green); }
+
+        /* Toast */
+        #toast {
+            position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+            background: var(--purple-deep); color: white; padding: 12px 24px;
+            border-radius: 30px; font-size: 0.88rem; font-weight: 600;
+            box-shadow: var(--shadow-lg); z-index: 9999; display: none;
+            align-items: center; gap: 8px;
+        }
+
+        @media (max-width: 900px) {
+            .active-ads-grid { grid-template-columns: 1fr 1fr; }
+            .sidebar { width: 60px; padding: 16px 8px; }
+            .sidebar-logo p, .sidebar-nav span { display: none; }
+            .admin-main { padding: 20px 14px; }
+        }
+        @media (max-width: 600px) {
+            .active-ads-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+<div class="admin-layout">
+    <aside class="sidebar">
+        <div class="sidebar-logo">
+            <img src="{{ url_for('static', filename='screen.png') }}" alt="PillBox">
+            <p>Admin Panel</p>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="{{ url_for('admin_dashboard') }}"><span class="icon">📦</span><span>Products</span></a>
+            <a href="{{ url_for('admin_add_product') }}"><span class="icon">➕</span><span>Add Product</span></a>
+            <a href="{{ url_for('admin_orders') }}"><span class="icon">📋</span><span>Orders</span></a>
+            <a href="{{ url_for('admin_stats') }}"><span class="icon">📊</span><span>Statistics</span></a>
+            <a href="{{ url_for('admin_staff') }}"><span class="icon">👥</span><span>Staff</span></a>
+            <a href="{{ url_for('admin_ads') }}" class="active"><span class="icon">📢</span><span>Ad Manager</span></a>
+            <hr class="sidebar-divider">
+            <a href="{{ url_for('index') }}" target="_blank"><span class="icon">🏪</span><span>View Store</span></a>
+            <a href="{{ url_for('admin_logout') }}"><span class="icon">🚪</span><span>Logout</span></a>
+        </nav>
+    </aside>
+
+    <div class="admin-main">
+        <div class="page-title">📢 Ad Manager</div>
+        <div class="page-sub">Choose up to 3 products to feature in the homepage ad widget, and set how long each runs.</div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% for cat, msg in messages %}
+                <div class="alert alert-{{ cat }}">{{ msg }}</div>
+            {% endfor %}
+        {% endwith %}
+
+        <!-- ── CURRENTLY RUNNING ADS ── -->
+        <div class="section-heading">
+            Currently Running
+            <span class="badge">{{ active_ads|length }} / 3</span>
+        </div>
+
+        {% if active_ads %}
+        <div class="active-ads-grid">
+            {% for entry in active_ads %}
+            {% set p = entry.product %}
+            {% set img = p.images[0] if p.images else p.img %}
+            <div class="active-ad-card">
+                <span class="active-ad-slot">Slot {{ loop.index }}</span>
+                <img class="active-ad-img" src="{{ img }}" alt="{{ p.name }}">
+                <div class="active-ad-body">
+                    <div class="active-ad-name">{{ p.name }}</div>
+                    <div class="active-ad-timer">
+                        <div>
+                            <div class="timer-label">Time Remaining</div>
+                            <div class="timer-value" data-expires="{{ entry.ad.expires_at }}">--:--:--</div>
+                            <div class="timer-expires">
+                                Expires {{ entry.ad.expires_at[:16].replace('T',' ') }}
+                            </div>
+                        </div>
+                    </div>
+                    <form action="{{ url_for('admin_remove_ad', product_id=p.id) }}" method="post"
+                          onsubmit="return confirm('Remove this ad?')">
+                        <button type="submit" class="btn-remove">✕ Remove Ad</button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-ads">
+            <div class="icon">📢</div>
+            <p>No ads are running. Select products below and click a blue duration button to go live.</p>
+        </div>
+        {% endif %}
+
+        <!-- ── PRODUCT PICKER ── -->
+        <div class="section-heading">
+            All Products
+            <span class="badge">{{ products|length }}</span>
+        </div>
+        <div class="picker-card">
+            <div class="picker-header">
+                <h3>Select a product → choose duration → it goes live</h3>
+                <input type="text" class="picker-search" id="prodSearch" placeholder="Search products…">
+            </div>
+            <div style="overflow-x:auto;">
+            <table class="products-table" id="prodTable">
+                <thead>
+                    <tr>
+                        <th>Image</th>
+                        <th>Product</th>
+                        <th>Price</th>
+                        <th>Status</th>
+                        <th>Display for…</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for p in products %}
+                {% set img = p.images[0] if p.images else p.img %}
+                {% set is_active = p.id in active_ids %}
+                <tr class="{{ 'is-active' if is_active else '' }}" data-name="{{ p.name.lower() }}">
+                    <td><img src="{{ img }}" alt="{{ p.name }}" class="prod-thumb"></td>
+                    <td>
+                        <div class="prod-name">{{ p.name }}</div>
+                        <div class="prod-cat">{{ categories.get(p.category, p.category) }}</div>
+                    </td>
+                    <td class="price-col">
+                        JMD {{ "%.2f"|format(p.effective_price) }}
+                        {% if p.discount > 0 %}
+                        <br><span style="font-size:0.72rem;text-decoration:line-through;color:var(--gray-600);font-weight:400;">{{ "%.2f"|format(p.original_price) }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if is_active %}
+                        <span class="active-tag">✓ Running</span>
+                        {% else %}
+                        <span style="color:var(--gray-600);font-size:0.8rem;">Not running</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if not is_active %}
+                        <div class="duration-picker">
+                            {% for dur in durations %}
+                            <button class="dur-btn"
+                                    onclick="setAd({{ p.id }}, {{ dur.seconds }}, this, '{{ dur.label }}')">
+                                {{ dur.label }}
+                            </button>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <span style="font-size:0.8rem;color:var(--green);font-weight:600;">Ad is live ↑</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="toast">📢 <span id="toastMsg"></span></div>
+
+<script>
+    // ── Countdown timers ──
+    function updateTimers() {
+        document.querySelectorAll('.timer-value[data-expires]').forEach(el => {
+            const exp  = new Date(el.dataset.expires);
+            const diff = Math.max(0, Math.floor((exp - Date.now()) / 1000));
+            const h = String(Math.floor(diff / 3600)).padStart(2,'0');
+            const m = String(Math.floor((diff % 3600) / 60)).padStart(2,'0');
+            const s = String(diff % 60).padStart(2,'0');
+            el.textContent = diff > 0 ? `${h}:${m}:${s}` : 'Expired';
+            el.style.color  = diff < 300 ? '#dc2626' : '';
+        });
+    }
+    updateTimers();
+    setInterval(updateTimers, 1000);
+
+    // ── Set ad via AJAX ──
+    function setAd(productId, seconds, btn, label) {
+        btn.classList.add('loading');
+        btn.textContent = '…';
+        const fd = new FormData();
+        fd.append('product_id', productId);
+        fd.append('seconds', seconds);
+        fetch('/admin/ads/set', { method: 'POST', body: fd })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    btn.classList.remove('loading');
+                    btn.classList.add('done');
+                    btn.textContent = '✓ Live!';
+                    showToast(`Ad set for ${label} — refreshing…`);
+                    setTimeout(() => location.reload(), 1200);
+                } else {
+                    btn.classList.remove('loading');
+                    btn.textContent = label;
+                    showToast('⚠ ' + data.message, true);
+                }
+            })
+            .catch(() => { btn.classList.remove('loading'); btn.textContent = label; });
+    }
+
+    // ── Search filter ──
+    document.getElementById('prodSearch').addEventListener('input', function() {
+        const q = this.value.toLowerCase();
+        document.querySelectorAll('#prodTable tbody tr').forEach(row => {
+            row.style.display = row.dataset.name.includes(q) ? '' : 'none';
+        });
+    });
+
+    // ── Toast ──
+    function showToast(msg, isError) {
+        const t = document.getElementById('toast');
+        document.getElementById('toastMsg').textContent = msg;
+        t.style.background = isError ? '#dc2626' : 'var(--purple-deep)';
+        t.style.display = 'flex';
+        setTimeout(() => { t.style.display = 'none'; }, 3500);
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+[
+  {
+    "id": "s1",
+    "name": "Admin User",
+    "username": "admin",
+    "password": "pillbox",
+    "role": "admin"
+  },
+  {
+    "id": "s2",
+    "name": "Marcus Reid",
+    "username": "marcus",
+    "password": "deliver123",
+    "role": "delivery"
+  }
+]

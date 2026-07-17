@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: pillbox-pharmacy
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    plan: free
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.0"
+      - key: SECRET_KEY
+        generateValue: true
+    disk:
+      name: pillbox-data
+      mountPath: /opt/render/project/src
+      sizeGB: 1

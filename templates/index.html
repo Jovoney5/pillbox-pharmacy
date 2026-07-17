@@ -1,0 +1,484 @@
+{% extends "base.html" %}
+{% block title %}The PillBox Pharmacy Ltd. & Book Store – Home{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* ── HERO SECTION (hero + ad widget side by side) ── */
+    .home-top {
+        display: grid;
+        grid-template-columns: 1fr 300px;
+        gap: 24px;
+        margin-bottom: 48px;
+        align-items: stretch;
+    }
+
+    .hero {
+        background: linear-gradient(135deg, var(--purple-deep) 0%, var(--purple-light) 100%);
+        color: white;
+        border-radius: 16px;
+        padding: 56px 44px;
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+    .hero::before {
+        content: '';
+        position: absolute;
+        top: -60px; right: -60px;
+        width: 280px; height: 280px;
+        background: rgba(255,255,255,0.06);
+        border-radius: 50%;
+        pointer-events: none;
+    }
+    .hero::after {
+        content: '';
+        position: absolute;
+        bottom: -80px; left: -40px;
+        width: 320px; height: 320px;
+        background: rgba(255,255,255,0.04);
+        border-radius: 50%;
+        pointer-events: none;
+    }
+    .hero h1 { font-size: 2.4rem; font-weight: 800; margin-bottom: 14px; line-height: 1.2; position: relative; }
+    .hero p { font-size: 1.05rem; opacity: 0.9; margin-bottom: 28px; max-width: 420px; line-height: 1.6; position: relative; }
+    .hero-btns { display: flex; gap: 12px; flex-wrap: wrap; position: relative; }
+    .hero-btn {
+        padding: 12px 26px;
+        border-radius: 8px;
+        font-weight: 700;
+        font-size: 0.95rem;
+        cursor: pointer;
+        border: none;
+        transition: all 0.18s;
+    }
+    .hero-btn-primary { background: white; color: var(--purple-dark); }
+    .hero-btn-primary:hover { background: var(--purple-pale); transform: translateY(-1px); }
+    .hero-btn-outline { background: transparent; border: 2px solid rgba(255,255,255,0.7); color: white; }
+    .hero-btn-outline:hover { background: rgba(255,255,255,0.15); }
+
+    /* ── AD WIDGET (compact side panel) ── */
+    .ad-widget {
+        border-radius: 16px;
+        overflow: hidden;
+        position: relative;
+        box-shadow: var(--shadow-lg);
+    }
+    .ad-widget-track {
+        display: flex;
+        height: 100%;
+        transition: transform 0.6s cubic-bezier(.77,0,.18,1);
+    }
+    .ad-widget-slide {
+        min-width: 100%;
+        height: 100%;
+        min-height: 280px;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        justify-content: flex-end;
+        padding: 22px 20px 20px;
+        position: relative;
+        overflow: hidden;
+    }
+    .ad-widget-slide::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(180deg, transparent 20%, rgba(0,0,0,0.65) 100%);
+        z-index: 1;
+    }
+    .ad-widget-slide img {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    .ad-widget-content { position: relative; z-index: 2; color: white; width: 100%; }
+    .ad-widget-tag {
+        display: inline-block;
+        background: var(--purple);
+        border-radius: 4px;
+        padding: 3px 10px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+        margin-bottom: 8px;
+    }
+    .ad-widget-content h3 { font-size: 1.1rem; font-weight: 800; line-height: 1.25; margin-bottom: 6px; }
+    .ad-widget-content p { font-size: 0.78rem; opacity: 0.9; margin-bottom: 12px; line-height: 1.4; }
+    .ad-widget-btn {
+        display: inline-block;
+        background: white;
+        color: var(--purple-dark);
+        padding: 7px 16px;
+        border-radius: 20px;
+        font-weight: 700;
+        font-size: 0.78rem;
+        transition: transform 0.15s;
+    }
+    .ad-widget-btn:hover { transform: translateY(-1px); }
+
+    /* widget controls */
+    .ad-widget-dots {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        display: flex;
+        gap: 5px;
+        z-index: 10;
+    }
+    .ad-widget-dot {
+        width: 7px; height: 7px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.45);
+        cursor: pointer;
+        transition: background 0.2s, transform 0.2s;
+        border: none;
+    }
+    .ad-widget-dot.active { background: white; transform: scale(1.3); }
+    .ad-widget-prev, .ad-widget-next {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 10;
+        background: rgba(255,255,255,0.2);
+        border: none;
+        color: white;
+        width: 28px; height: 28px;
+        border-radius: 50%;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: background 0.18s;
+        display: flex; align-items: center; justify-content: center;
+    }
+    .ad-widget-prev:hover, .ad-widget-next:hover { background: rgba(255,255,255,0.38); }
+    .ad-widget-prev { left: 8px; }
+    .ad-widget-next { right: 8px; }
+
+    /* ── CATEGORIES — circles with product photo ── */
+    .section-title { font-size: 1.4rem; font-weight: 700; color: var(--gray-900); margin-bottom: 6px; }
+    .section-sub { color: var(--gray-600); font-size: 0.9rem; margin-bottom: 24px; }
+
+    .cat-circles {
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+        margin-bottom: 50px;
+        justify-content: flex-start;
+    }
+    .cat-circle-link {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        cursor: pointer;
+        text-decoration: none;
+        width: 100px;
+        transition: transform 0.18s;
+    }
+    .cat-circle-link:hover { transform: translateY(-5px); }
+    .cat-circle-link:hover .cat-circle-img { border-color: var(--purple); box-shadow: 0 0 0 3px var(--purple-pale), var(--shadow-lg); }
+    .cat-circle-img {
+        width: 84px; height: 84px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 3px solid var(--gray-200);
+        box-shadow: var(--shadow);
+        transition: border-color 0.18s, box-shadow 0.18s;
+        background: var(--gray-100);
+    }
+    .cat-circle-name {
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: var(--gray-700);
+        text-align: center;
+        line-height: 1.3;
+    }
+
+    /* ── FEATURED PRODUCTS ── */
+    .products-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 20px;
+        margin-bottom: 50px;
+    }
+    .product-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: var(--shadow);
+        overflow: hidden;
+        transition: transform 0.18s, box-shadow 0.18s;
+    }
+    .product-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); }
+    .product-img { width: 100%; height: 180px; object-fit: cover; display: block; }
+    .product-body { padding: 14px; }
+    .product-name { font-weight: 600; font-size: 0.95rem; margin-bottom: 4px; color: var(--gray-900); line-height: 1.3; }
+    .product-desc { font-size: 0.78rem; color: var(--gray-600); margin-bottom: 10px; line-height: 1.4; }
+    .product-footer { display: flex; justify-content: space-between; align-items: center; }
+    .product-price { font-size: 1.05rem; font-weight: 700; color: var(--purple); }
+    .add-btn {
+        background: var(--purple);
+        color: white;
+        border: none;
+        border-radius: 6px;
+        padding: 7px 14px;
+        font-size: 0.82rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.18s;
+    }
+    .add-btn:hover { background: var(--purple-light); }
+
+    /* Ad countdown */
+    .ad-countdown {
+        position: absolute;
+        top: 10px; right: 10px;
+        z-index: 5;
+        background: rgba(0,0,0,0.55);
+        border-radius: 20px;
+        padding: 4px 12px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        backdrop-filter: blur(4px);
+    }
+    .ad-countdown-label { font-size: 0.62rem; color: rgba(255,255,255,0.7); }
+    .ad-countdown-time  { font-size: 0.75rem; font-weight: 700; color: white; font-family: monospace; }
+
+    @media (max-width: 800px) {
+        .home-top { grid-template-columns: 1fr; }
+        .ad-widget { min-height: 220px; }
+        .hero { padding: 40px 28px; }
+        .hero h1 { font-size: 1.8rem; }
+        .cat-circles { gap: 14px; }
+        .cat-circle-link { width: 80px; }
+        .cat-circle-img { width: 68px; height: 68px; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- ── TOP: Hero + Ad Widget ── -->
+<div class="home-top">
+
+    <!-- Hero -->
+    <div class="hero">
+        <h1>Your Health,<br>Our Priority 💊</h1>
+        <p>From pharmacy essentials to books, perfumes and office supplies — everything you need under one roof.</p>
+        <div class="hero-btns">
+            <a href="{{ url_for('shop') }}" class="hero-btn hero-btn-primary">Shop Now</a>
+            <a href="{{ url_for('about') }}" class="hero-btn hero-btn-outline">Learn More</a>
+        </div>
+    </div>
+
+    <!-- Ad Widget -->
+    <div class="ad-widget" id="adWidget">
+        {% if active_ads %}
+        <div class="ad-widget-track" id="adTrack">
+            {% for entry in active_ads %}
+            {% set p = entry.product %}
+            {% set img = p.images[0] if p.images else p.img %}
+            <div class="ad-widget-slide">
+                <img src="{{ img }}" alt="{{ p.name }}">
+                <div class="ad-widget-content">
+                    {% if p.discount > 0 %}
+                    <div class="ad-widget-tag">🔥 {{ p.discount }}% OFF</div>
+                    {% else %}
+                    <div class="ad-widget-tag">⭐ Featured</div>
+                    {% endif %}
+                    <h3>{{ p.name }}</h3>
+                    <p>{{ p.description[:70] }}{% if p.description|length > 70 %}…{% endif %}</p>
+                    <a href="{{ url_for('product', product_id=p.id) }}" class="ad-widget-btn">
+                        Shop Now — JMD {{ "%.2f"|format(p.effective_price) }} →
+                    </a>
+                </div>
+                <!-- Countdown timer -->
+                <div class="ad-countdown" data-expires="{{ entry.ad.expires_at }}">
+                    <span class="ad-countdown-label">Ad ends in</span>
+                    <span class="ad-countdown-time">--:--:--</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% if active_ads|length > 1 %}
+        <div class="ad-widget-dots" id="adDots">
+            {% for entry in active_ads %}
+            <button class="ad-widget-dot {{ 'active' if loop.index0 == 0 else '' }}"
+                    onclick="adGoTo({{ loop.index0 }})"></button>
+            {% endfor %}
+        </div>
+        <button class="ad-widget-prev" onclick="adSlide(-1)">‹</button>
+        <button class="ad-widget-next" onclick="adSlide(1)">›</button>
+        {% endif %}
+
+        {% else %}
+        <!-- No active ads — placeholder -->
+        <div style="height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;
+                    background:linear-gradient(135deg,var(--purple-deep),var(--purple));color:white;
+                    border-radius:16px;padding:32px;text-align:center;gap:10px;">
+            <div style="font-size:2rem;">📢</div>
+            <div style="font-weight:700;font-size:1rem;">No Active Ads</div>
+            <div style="font-size:0.8rem;opacity:0.75;">Admins can select products to feature here</div>
+            {% if is_admin %}
+            <a href="{{ url_for('admin_ads') }}"
+               style="margin-top:8px;background:white;color:var(--purple-dark);padding:8px 18px;
+                      border-radius:20px;font-weight:700;font-size:0.82rem;">
+                Manage Ads →
+            </a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+
+<!-- ── CATEGORIES: circles with real product photos ── -->
+<div class="section-title">Shop by Category</div>
+<div class="section-sub">Tap a category to explore</div>
+<div class="cat-circles">
+    <a href="{{ url_for('shop') }}?category=pharmacy" class="cat-circle-link">
+        <img class="cat-circle-img" src="{{ cat_images['pharmacy'] }}" alt="Pharmacy & Health">
+        <span class="cat-circle-name">Pharmacy &amp; Health</span>
+    </a>
+    <a href="{{ url_for('shop') }}?category=braces" class="cat-circle-link">
+        <img class="cat-circle-img" src="{{ cat_images['braces'] }}" alt="Braces & Supports">
+        <span class="cat-circle-name">Braces &amp; Supports</span>
+    </a>
+    <a href="{{ url_for('shop') }}?category=personal_care" class="cat-circle-link">
+        <img class="cat-circle-img" src="{{ cat_images['personal_care'] }}" alt="Personal Care">
+        <span class="cat-circle-name">Personal Care</span>
+    </a>
+    <a href="{{ url_for('shop') }}?category=perfumes" class="cat-circle-link">
+        <img class="cat-circle-img" src="{{ cat_images['perfumes'] }}" alt="Perfumes">
+        <span class="cat-circle-name">Perfumes</span>
+    </a>
+    <a href="{{ url_for('shop') }}?category=books" class="cat-circle-link">
+        <img class="cat-circle-img" src="{{ cat_images['books'] }}" alt="Books">
+        <span class="cat-circle-name">Books</span>
+    </a>
+    <a href="{{ url_for('shop') }}?category=stationery" class="cat-circle-link">
+        <img class="cat-circle-img" src="{{ cat_images['stationery'] }}" alt="Stationery">
+        <span class="cat-circle-name">Office &amp; Stationery</span>
+    </a>
+</div>
+
+<!-- ── FEATURED PRODUCTS ── -->
+<div class="section-title">
+    {% if personalised %}Picked For You{% else %}Featured Products{% endif %}
+</div>
+<div class="section-sub">
+    {% if personalised %}Based on what you've been browsing{% else %}Hand-picked favourites from our shelves{% endif %}
+</div>
+<div class="products-grid">
+    {% for product in featured %}
+    <div class="product-card">
+        <a href="{{ url_for('product', product_id=product.id) }}">
+            <img src="{{ product.img }}" alt="{{ product.name }}" class="product-img">
+        </a>
+        <div class="product-body">
+            <div class="product-name">{{ product.name }}</div>
+            <div class="product-desc">{{ product.description }}</div>
+            <div class="product-footer">
+                {% if product.discount > 0 %}
+                <div style="font-size:0.72rem;text-decoration:line-through;color:var(--gray-600);">JMD {{ "%.2f"|format(product.original_price) }}</div>
+                <span class="product-price">JMD {{ "%.2f"|format(product.effective_price) }}</span>
+                <span style="background:#dcfce7;color:#16a34a;border-radius:8px;padding:1px 7px;font-size:0.7rem;font-weight:700;margin-left:2px;">-{{ product.discount }}%</span>
+                {% else %}
+                <span class="product-price">JMD {{ "%.2f"|format(product.effective_price) }}</span>
+                {% endif %}
+                <button class="add-btn" onclick="addToCart({{ product.id }}, this)">+ Cart</button>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<div style="text-align:center; margin-bottom:30px;">
+    <a href="{{ url_for('shop') }}" class="btn btn-outline">View All Products →</a>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // ── Ad Widget Slider ──
+    (function() {
+        const track  = document.getElementById('adTrack');
+        if (!track) return;
+        const slides = track.querySelectorAll('.ad-widget-slide');
+        const dots   = document.querySelectorAll('.ad-widget-dot');
+        const total  = slides.length;
+        if (total === 0) return;
+        let cur = 0, timer = null;
+
+        function updateDots() {
+            dots.forEach((d, i) => d.classList.toggle('active', i === cur));
+        }
+        window.adSlide = function(dir) {
+            cur = (cur + dir + total) % total;
+            track.style.transform = `translateX(-${cur * 100}%)`;
+            updateDots();
+            restartTimer();
+        };
+        window.adGoTo = function(idx) {
+            cur = idx;
+            track.style.transform = `translateX(-${cur * 100}%)`;
+            updateDots();
+            restartTimer();
+        };
+        function restartTimer() {
+            clearInterval(timer);
+            if (total > 1) timer = setInterval(() => adSlide(1), 5000);
+        }
+        restartTimer();
+
+        const widget = document.getElementById('adWidget');
+        widget.addEventListener('mouseenter', () => clearInterval(timer));
+        widget.addEventListener('mouseleave', restartTimer);
+
+        // ── Countdown timers ──
+        function updateCountdowns() {
+            document.querySelectorAll('.ad-countdown').forEach(el => {
+                const exp = new Date(el.dataset.expires);
+                const diff = Math.max(0, Math.floor((exp - Date.now()) / 1000));
+                const h = String(Math.floor(diff / 3600)).padStart(2, '0');
+                const m = String(Math.floor((diff % 3600) / 60)).padStart(2, '0');
+                const s = String(diff % 60).padStart(2, '0');
+                el.querySelector('.ad-countdown-time').textContent =
+                    diff >= 3600 ? `${h}:${m}:${s}` :
+                    diff > 0     ? `${m}:${s}` : 'Expired';
+                if (diff === 0) el.style.opacity = '0.4';
+            });
+        }
+        updateCountdowns();
+        setInterval(updateCountdowns, 1000);
+    })();
+
+    // ── Add to cart ──
+    function addToCart(productId, btn) {
+        btn.disabled = true;
+        btn.textContent = '...';
+        fetch(`/add_to_cart/${productId}`, { method: 'POST' })
+            .then(r => r.json())
+            .then(data => {
+                btn.textContent = '✓ Added';
+                btn.style.background = 'var(--purple-dark)';
+                const badge = document.querySelector('.cart-badge');
+                if (badge) { badge.textContent = data.count; }
+                else {
+                    const cartLink = document.querySelector('.nav-cart');
+                    const b = document.createElement('span');
+                    b.className = 'cart-badge';
+                    b.textContent = data.count;
+                    cartLink.insertBefore(b, cartLink.lastChild);
+                }
+                setTimeout(() => { btn.textContent = '+ Cart'; btn.style.background = ''; btn.disabled = false; }, 1800);
+            });
+    }
+</script>
+{% endblock %}

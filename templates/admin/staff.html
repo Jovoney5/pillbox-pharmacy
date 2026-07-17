@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Staff – PillBox Admin</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --purple: #7B2FBE; --purple-light: #9B59D0; --purple-dark: #561F87;
+            --purple-deep: #3A1060; --purple-pale: #F3E8FF;
+            --white: #fff; --gray-50: #faf9fc; --gray-100: #f2eef8;
+            --gray-200: #e4daf0; --gray-600: #5b5170; --gray-700: #3d3356;
+            --gray-900: #1a1230; --red: #dc2626; --green: #16a34a;
+            --shadow: 0 2px 8px rgba(90,30,150,0.10);
+            --shadow-lg: 0 8px 30px rgba(90,30,150,0.16);
+        }
+        body { font-family: 'Inter', sans-serif; background: var(--gray-50); color: var(--gray-900); }
+        a { text-decoration: none; color: inherit; }
+
+        .admin-layout { display: flex; min-height: 100vh; }
+        .sidebar {
+            width: 240px; flex-shrink: 0;
+            background: var(--purple-deep); color: white;
+            padding: 24px 16px;
+            position: sticky; top: 0; height: 100vh; overflow-y: auto;
+        }
+        .sidebar-logo { margin-bottom: 32px; }
+        .sidebar-logo img { height: 48px; border-radius: 6px; background: white; padding: 3px; }
+        .sidebar-logo p { font-size: 0.72rem; color: rgba(255,255,255,0.5); margin-top: 6px; }
+        .sidebar-nav a {
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px 12px; border-radius: 8px;
+            font-size: 0.88rem; font-weight: 500;
+            color: rgba(255,255,255,0.75);
+            margin-bottom: 4px; transition: background 0.15s, color 0.15s;
+        }
+        .sidebar-nav a:hover, .sidebar-nav a.active {
+            background: rgba(255,255,255,0.12); color: white;
+        }
+        .sidebar-nav .icon { font-size: 1rem; width: 20px; text-align: center; }
+        .sidebar-divider { border: none; border-top: 1px solid rgba(255,255,255,0.12); margin: 16px 0; }
+
+        .admin-main { flex: 1; padding: 32px; overflow-x: auto; }
+        .admin-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 28px; flex-wrap: wrap; gap: 14px;
+        }
+        .admin-header h1 { font-size: 1.5rem; font-weight: 700; }
+        .admin-header p { color: var(--gray-600); font-size: 0.88rem; margin-top: 2px; }
+
+        .alert { padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; font-size: 0.88rem; font-weight: 500; }
+        .alert-success { background: var(--purple-pale); color: var(--purple-dark); border-left: 4px solid var(--purple); }
+        .alert-error { background: #fee2e2; color: #991b1b; border-left: 4px solid var(--red); }
+
+        .table-card { background: white; border-radius: 14px; box-shadow: var(--shadow); overflow: hidden; margin-bottom: 28px; }
+        .table-top {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 18px 22px; border-bottom: 1px solid var(--gray-200);
+        }
+        .table-top h2 { font-size: 1rem; font-weight: 700; }
+
+        table { width: 100%; border-collapse: collapse; }
+        th {
+            background: var(--gray-100); text-align: left;
+            padding: 11px 16px; font-size: 0.78rem; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 0.05em; color: var(--gray-600);
+        }
+        td { padding: 14px 16px; border-bottom: 1px solid var(--gray-100); font-size: 0.88rem; vertical-align: middle; }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: var(--gray-50); }
+
+        .role-badge {
+            display: inline-block; padding: 3px 10px;
+            border-radius: 20px; font-size: 0.72rem; font-weight: 700; color: white;
+        }
+        .role-admin    { background: var(--purple); }
+        .role-delivery { background: #2563EB; }
+
+        .btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 7px; font-weight: 600; font-size: 0.82rem; cursor: pointer; border: none; transition: all 0.18s; font-family: inherit; }
+        .btn-primary { background: var(--purple); color: white; }
+        .btn-primary:hover { background: var(--purple-light); }
+        .btn-danger  { background: #fee2e2; color: var(--red); }
+        .btn-danger:hover  { background: #fecaca; }
+
+        /* Add staff form card */
+        .form-card {
+            background: white; border-radius: 14px; box-shadow: var(--shadow);
+            padding: 28px;
+        }
+        .form-card h2 { font-size: 1.05rem; font-weight: 700; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 2px solid var(--purple-pale); color: var(--purple-dark); }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .form-group { margin-bottom: 0; }
+        .form-group label { display: block; font-size: 0.84rem; font-weight: 600; color: var(--gray-700); margin-bottom: 6px; }
+        .form-group input, .form-group select {
+            width: 100%; padding: 10px 14px;
+            border: 1.5px solid var(--gray-200); border-radius: 8px;
+            font-size: 0.92rem; outline: none; transition: border-color 0.15s;
+            font-family: inherit;
+        }
+        .form-group input:focus, .form-group select:focus { border-color: var(--purple); }
+        .form-submit-row { margin-top: 20px; }
+
+        @media (max-width: 900px) {
+            .sidebar { width: 60px; padding: 16px 8px; }
+            .sidebar-logo p, .sidebar-nav span { display: none; }
+            .sidebar-logo img { height: 36px; }
+            .admin-main { padding: 20px 14px; }
+            .form-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+<div class="admin-layout">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-logo">
+            <img src="{{ url_for('static', filename='screen.png') }}" alt="PillBox">
+            <p>Admin Panel</p>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="{{ url_for('admin_dashboard') }}">
+                <span class="icon">📦</span><span>Products</span>
+            </a>
+            <a href="{{ url_for('admin_add_product') }}">
+                <span class="icon">➕</span><span>Add Product</span>
+            </a>
+            <a href="{{ url_for('admin_orders') }}">
+                <span class="icon">📋</span><span>Orders</span>
+            </a>
+            <a href="{{ url_for('admin_stats') }}">
+                <span class="icon">📊</span><span>Statistics</span>
+            </a>
+            <a href="{{ url_for('admin_staff') }}" class="active">
+                <span class="icon">👥</span><span>Staff</span>
+            </a>
+            <a href="/admin/ads"><span class="icon">📢</span><span>Ad Manager</span></a>
+            <hr class="sidebar-divider">
+            <a href="{{ url_for('index') }}" target="_blank">
+                <span class="icon">🏪</span><span>View Store</span>
+            </a>
+            <a href="{{ url_for('admin_logout') }}">
+                <span class="icon">🚪</span><span>Logout</span>
+            </a>
+        </nav>
+    </aside>
+
+    <!-- Main -->
+    <div class="admin-main">
+        <div class="admin-header">
+            <div>
+                <h1>Staff Management</h1>
+                <p>Manage admin and delivery team members</p>
+            </div>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endwith %}
+
+        <!-- Staff Table -->
+        <div class="table-card">
+            <div class="table-top">
+                <h2>Team Members ({{ staff|length }})</h2>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Username</th>
+                        <th>Role</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for member in staff %}
+                <tr>
+                    <td><strong>{{ member.name }}</strong></td>
+                    <td style="font-family:monospace;color:var(--gray-600);">{{ member.username }}</td>
+                    <td>
+                        <span class="role-badge role-{{ member.role }}">
+                            {{ member.role.title() }}
+                        </span>
+                    </td>
+                    <td>
+                        <form method="POST" action="{{ url_for('admin_delete_staff', staff_id=member.id) }}" style="display:inline;"
+                              onsubmit="return confirm('Remove {{ member.name }} from staff? This cannot be undone.')">
+                            <button type="submit" class="btn btn-danger">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="4" style="text-align:center;color:var(--gray-600);padding:32px;">No staff members found.</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Add Staff Form -->
+        <div class="form-card">
+            <h2>👤 Add Staff Member</h2>
+            <form method="POST" action="{{ url_for('admin_add_staff') }}">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Full Name</label>
+                        <input type="text" name="name" placeholder="e.g. Marcus Reid" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Username</label>
+                        <input type="text" name="username" placeholder="e.g. marcus" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" name="password" placeholder="Set a secure password" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Role</label>
+                        <select name="role" required>
+                            <option value="delivery">Delivery</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-submit-row">
+                    <button type="submit" class="btn btn-primary">👤 Add Staff Member</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+</html>

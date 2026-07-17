@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard – PillBox Pharmacy</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --purple: #7B2FBE; --purple-light: #9B59D0; --purple-dark: #561F87;
+            --purple-deep: #3A1060; --purple-pale: #F3E8FF;
+            --white: #fff; --gray-50: #faf9fc; --gray-100: #f2eef8;
+            --gray-200: #e4daf0; --gray-600: #5b5170; --gray-700: #3d3356;
+            --gray-900: #1a1230; --red: #dc2626; --green: #16a34a;
+            --shadow: 0 2px 8px rgba(90,30,150,0.10);
+            --shadow-lg: 0 8px 30px rgba(90,30,150,0.16);
+        }
+        body { font-family: 'Inter', sans-serif; background: var(--gray-50); color: var(--gray-900); }
+        a { text-decoration: none; color: inherit; }
+
+        /* Sidebar */
+        .admin-layout { display: flex; min-height: 100vh; }
+        .sidebar {
+            width: 240px; flex-shrink: 0;
+            background: var(--purple-deep);
+            color: white;
+            padding: 24px 16px;
+            position: sticky; top: 0; height: 100vh;
+            overflow-y: auto;
+        }
+        .sidebar-logo { margin-bottom: 32px; }
+        .sidebar-logo img { height: 48px; border-radius: 6px; background: white; padding: 3px; }
+        .sidebar-logo p { font-size: 0.72rem; color: rgba(255,255,255,0.5); margin-top: 6px; }
+        .sidebar-nav a {
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px 12px; border-radius: 8px;
+            font-size: 0.88rem; font-weight: 500;
+            color: rgba(255,255,255,0.75);
+            margin-bottom: 4px; transition: background 0.15s, color 0.15s;
+        }
+        .sidebar-nav a:hover, .sidebar-nav a.active {
+            background: rgba(255,255,255,0.12); color: white;
+        }
+        .sidebar-nav .icon { font-size: 1rem; width: 20px; text-align: center; }
+        .sidebar-divider { border: none; border-top: 1px solid rgba(255,255,255,0.12); margin: 16px 0; }
+
+        /* Main content */
+        .admin-main { flex: 1; padding: 32px; overflow-x: auto; }
+        .admin-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 28px; flex-wrap: wrap; gap: 14px;
+        }
+        .admin-header h1 { font-size: 1.5rem; font-weight: 700; }
+        .admin-header p { color: var(--gray-600); font-size: 0.88rem; margin-top: 2px; }
+
+        /* Stat cards */
+        .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-bottom: 32px; }
+        .stat-card {
+            background: white; border-radius: 12px; padding: 20px;
+            box-shadow: var(--shadow); border-left: 4px solid var(--purple-light);
+        }
+        .stat-card .stat-num { font-size: 2rem; font-weight: 800; color: var(--purple); }
+        .stat-card .stat-label { font-size: 0.8rem; color: var(--gray-600); margin-top: 4px; }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 9px 18px; border-radius: 8px; font-weight: 600;
+            font-size: 0.88rem; cursor: pointer; border: none; transition: all 0.18s;
+        }
+        .btn-primary { background: var(--purple); color: white; }
+        .btn-primary:hover { background: var(--purple-light); }
+        .btn-sm { padding: 6px 12px; font-size: 0.78rem; }
+        .btn-edit { background: var(--purple-pale); color: var(--purple-dark); }
+        .btn-edit:hover { background: #e9d5ff; }
+        .btn-danger { background: #fee2e2; color: var(--red); }
+        .btn-danger:hover { background: #fecaca; }
+
+        /* Alert */
+        .alert { padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; font-size: 0.88rem; font-weight: 500; }
+        .alert-success { background: var(--purple-pale); color: var(--purple-dark); border-left: 4px solid var(--purple); }
+        .alert-error { background: #fee2e2; color: #991b1b; border-left: 4px solid var(--red); }
+
+        /* Table */
+        .table-card { background: white; border-radius: 14px; box-shadow: var(--shadow); overflow: hidden; }
+        .table-top {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 18px 22px; border-bottom: 1px solid var(--gray-200); flex-wrap: wrap; gap: 12px;
+        }
+        .table-top h2 { font-size: 1rem; font-weight: 700; }
+        .search-input {
+            padding: 8px 14px; border: 1.5px solid var(--gray-200); border-radius: 8px;
+            font-size: 0.85rem; outline: none; font-family: inherit; width: 220px;
+        }
+        .search-input:focus { border-color: var(--purple); }
+        table { width: 100%; border-collapse: collapse; }
+        th {
+            background: var(--gray-100); text-align: left;
+            padding: 11px 16px; font-size: 0.78rem; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 0.05em; color: var(--gray-600);
+        }
+        td { padding: 13px 16px; border-bottom: 1px solid var(--gray-100); font-size: 0.88rem; vertical-align: middle; }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: var(--gray-50); }
+        .product-thumb {
+            width: 44px; height: 44px; border-radius: 8px;
+            object-fit: cover; border: 1px solid var(--gray-200);
+        }
+        .product-name-cell { font-weight: 600; }
+        .product-desc-cell { color: var(--gray-600); font-size: 0.78rem; max-width: 220px; }
+        .cat-badge {
+            background: var(--purple-pale); color: var(--purple-dark);
+            border-radius: 12px; padding: 3px 10px; font-size: 0.72rem; font-weight: 600;
+            white-space: nowrap;
+        }
+        .price-cell { font-weight: 700; color: var(--purple); white-space: nowrap; }
+        .orig-price { text-decoration: line-through; color: var(--gray-600); font-weight: 400; font-size: 0.78rem; }
+        .disc-badge {
+            display: inline-block;
+            background: #dcfce7; color: var(--green);
+            border-radius: 10px; padding: 2px 8px;
+            font-size: 0.72rem; font-weight: 700; margin-left: 4px;
+        }
+
+        /* Discount quick-set */
+        .disc-select {
+            padding: 5px 8px; border: 1.5px solid var(--gray-200);
+            border-radius: 6px; font-size: 0.78rem; background: white;
+            cursor: pointer; font-family: inherit; color: var(--gray-900);
+        }
+        .disc-select:focus { border-color: var(--purple); outline: none; }
+
+        /* Delete confirm */
+        .del-form { display: inline; }
+
+        @media (max-width: 900px) {
+            .sidebar { width: 60px; padding: 16px 8px; }
+            .sidebar-logo p, .sidebar-nav span { display: none; }
+            .sidebar-logo img { height: 36px; }
+            .admin-main { padding: 20px 14px; }
+        }
+    </style>
+</head>
+<body>
+<div class="admin-layout">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-logo">
+            <img src="{{ url_for('static', filename='screen.png') }}" alt="PillBox">
+            <p>Admin Panel</p>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="{{ url_for('admin_dashboard') }}" class="active">
+                <span class="icon">📦</span><span>Products</span>
+            </a>
+            <a href="{{ url_for('admin_add_product') }}">
+                <span class="icon">➕</span><span>Add Product</span>
+            </a>
+            <a href="{{ url_for('admin_orders') }}">
+                <span class="icon">📋</span><span>Orders</span>
+            </a>
+            <a href="{{ url_for('admin_stats') }}">
+                <span class="icon">📊</span><span>Statistics</span>
+            </a>
+            <a href="{{ url_for('admin_staff') }}">
+                <span class="icon">👥</span><span>Staff</span>
+            </a>
+            <a href="/admin/ads"><span class="icon">📢</span><span>Ad Manager</span></a>
+            <hr class="sidebar-divider">
+            <a href="{{ url_for('index') }}" target="_blank">
+                <span class="icon">🏪</span><span>View Store</span>
+            </a>
+            <a href="{{ url_for('admin_logout') }}">
+                <span class="icon">🚪</span><span>Logout</span>
+            </a>
+        </nav>
+    </aside>
+
+    <!-- Main -->
+    <div class="admin-main">
+        <div class="admin-header">
+            <div>
+                <h1>Product Dashboard</h1>
+                <p>Manage products, pricing and discounts</p>
+            </div>
+            <a href="{{ url_for('admin_add_product') }}" class="btn btn-primary">+ Add New Product</a>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endwith %}
+
+        <!-- Stats -->
+        <div class="stat-grid">
+            <div class="stat-card">
+                <div class="stat-num">{{ total_products }}</div>
+                <div class="stat-label">Total Products</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-num">{{ discounted }}</div>
+                <div class="stat-label">On Discount</div>
+            </div>
+            {% for key, label in categories.items() %}{% if key != 'all' %}
+            <div class="stat-card">
+                <div class="stat-num">{{ categories_count.get(key, 0) }}</div>
+                <div class="stat-label">{{ label }}</div>
+            </div>
+            {% endif %}{% endfor %}
+        </div>
+
+        <!-- Product table -->
+        <div class="table-card">
+            <div class="table-top">
+                <h2>All Products</h2>
+                <input type="text" class="search-input" id="tableSearch" placeholder="Search products...">
+            </div>
+            <div style="overflow-x:auto;">
+            <table id="productTable">
+                <thead>
+                    <tr>
+                        <th>Image</th>
+                        <th>Product</th>
+                        <th>Category</th>
+                        <th>Base Price</th>
+                        <th>Discount</th>
+                        <th>Sale Price</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for p in products %}
+                <tr data-name="{{ p.name.lower() }}">
+                    <td><img src="{{ p.img }}" alt="{{ p.name }}" class="product-thumb"></td>
+                    <td>
+                        <div class="product-name-cell">{{ p.name }}</div>
+                        <div class="product-desc-cell">{{ p.description[:60] }}{% if p.description|length > 60 %}…{% endif %}</div>
+                    </td>
+                    <td><span class="cat-badge">{{ categories.get(p.category, p.category) }}</span></td>
+                    <td class="price-cell">JMD {{ "%.2f"|format(p.original_price) }}</td>
+                    <td>
+                        <select class="disc-select" onchange="setDiscount({{ p.id }}, this.value, this)">
+                            {% for d in discount_options %}
+                            <option value="{{ d }}" {{ 'selected' if p.discount == d else '' }}>{{ d }}%</option>
+                            {% endfor %}
+                        </select>
+                    </td>
+                    <td class="price-cell" id="sale-{{ p.id }}">
+                        {% if p.discount > 0 %}
+                            <span class="orig-price">JMD {{ "%.2f"|format(p.original_price) }}</span><br>
+                            JMD {{ "%.2f"|format(p.effective_price) }}
+                            <span class="disc-badge">-{{ p.discount }}%</span>
+                        {% else %}
+                            JMD {{ "%.2f"|format(p.original_price) }}
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{{ url_for('admin_edit_product', product_id=p.id) }}" class="btn btn-sm btn-edit">Edit</a>
+                        <form class="del-form" action="{{ url_for('admin_delete_product', product_id=p.id) }}" method="post"
+                              onsubmit="return confirm('Delete {{ p.name }}? This cannot be undone.')">
+                            <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Live table search
+document.getElementById('tableSearch').addEventListener('input', function() {
+    const q = this.value.toLowerCase();
+    document.querySelectorAll('#productTable tbody tr').forEach(row => {
+        row.style.display = row.dataset.name.includes(q) ? '' : 'none';
+    });
+});
+
+// Quick discount update via AJAX
+function setDiscount(productId, discount, selectEl) {
+    const fd = new FormData();
+    fd.append('discount', discount);
+    fetch(`/admin/product/discount/${productId}`, { method: 'POST', body: fd })
+        .then(r => r.json())
+        .then(data => {
+            if (!data.success) return;
+            const cell = document.getElementById(`sale-${productId}`);
+            const orig = parseFloat(selectEl.closest('tr').querySelector('.price-cell').textContent.replace('JMD','').trim());
+            if (parseInt(discount) > 0) {
+                cell.innerHTML = `<span class="orig-price">JMD ${orig.toFixed(2)}</span><br>JMD ${data.effective_price.toFixed(2)} <span class="disc-badge">-${discount}%</span>`;
+            } else {
+                cell.innerHTML = `JMD ${orig.toFixed(2)}`;
+            }
+        });
+}
+</script>
+</body>
+</html>

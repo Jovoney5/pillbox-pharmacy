@@ -1,0 +1,334 @@
+[
+  {
+    "id": 1,
+    "name": "Secret Clinical Deodorant",
+    "price": 700.0,
+    "category": "personal_care",
+    "img": "/static/uploads/product_1_s0.png",
+    "description": "Hyaluronic Deodorant- Secret Clinical| Tested",
+    "discount": 0,
+    "images": [
+      "/static/uploads/product_1_s0.png"
+    ]
+  },
+  {
+    "id": 2,
+    "name": "Old Spice- Legacy Deodorant",
+    "price": 600.0,
+    "category": "personal_care",
+    "img": "/static/uploads/product_2_s0.png",
+    "description": "Old Spice- Legacy Deodorant|Armpit|Fresh Start",
+    "discount": 0,
+    "images": [
+      "/static/uploads/product_2_s0.png"
+    ]
+  },
+  {
+    "id": 3,
+    "name": "panadol",
+    "price": 999.0,
+    "category": "pharmacy",
+    "img": "https://images.unsplash.com/photo-1587854692152-cbe660dbde88?w=300&q=80",
+    "description": "Fast-acting cough & cold relief, 200ml.",
+    "discount": 0,
+    "images": [
+      "https://images.unsplash.com/photo-1587854692152-cbe660dbde88?w=300&q=80"
+    ]
+  },
+  {
+    "id": 4,
+    "name": "Vaze ceramic",
+    "price": 1200.0,
+    "category": "stationery",
+    "img": "/static/uploads/product_4_s0.png",
+    "description": "Vaze ceramic for office, living room and bedroom",
+    "discount": 0,
+    "images": [
+      "/static/uploads/product_4_s0.png",
+      "/static/uploads/product_4_s1.png"
+    ]
+  },
+  {
+    "id": 5,
+    "name": "Blood Pressure Monitor",
+    "price": 6500.0,
+    "category": "pharmacy",
+    "img": "/static/uploads/product_5_s0.jpg",
+    "description": "Digital automatic BP monitor with memory.",
+    "discount": 5,
+    "images": [
+      "/static/uploads/product_5_s0.jpg"
+    ]
+  },
+  {
+    "id": 6,
+    "name": "Bandage Roll",
+    "price": 1300.0,
+    "category": "pharmacy",
+    "img": "/static/uploads/product_6_s0.png",
+    "description": "Sterile cotton bandage, 5m x 55cm.",
+    "discount": 0,
+    "images": [
+      "/static/uploads/product_6_s0.png",
+      "/static/uploads/product_6_s1.png"
+    ]
+  },
+  {
+    "id": 7,
+    "name": "Ankle Brace Support",
+    "price": 1499.0,
+    "category": "braces",
+    "img": "/static/uploads/product_7_s0.jpg",
+    "description": "Adjustable ankle stabilizer for sprains & sports.",
+    "discount": 0,
+    "images": [
+      "/static/uploads/product_7_s0.jpg"
+    ]
+  },
+  {
+    "id": 8,
+    "name": "Knee Compression Sleeve",
+    "price": 2100.0,
+    "category": "braces",
+    "img": "/static/uploads/product_8_s0.png",
+    "description": "Neoprene knee sleeve for joint pain relief.",
+    "discount": 0,
+    "images": [
+      "/static/uploads/product_8_s0.png"
+    ]
+  },
+  {
+    "id": 9,
+    "name": "Wrist Support Brace",
+    "price": 1599.0,
+    "category": "braces",
+    "img": "/static/uploads/product_9_s0.png",
+    "description": "Ergonomic wrist wrap for carpal tunnel & sprains.",
+    "discount": 0,
+    "images": [
+      "/static/uploads/product_9_s0.png"
+    ]
+  },
+  {
+    "id": 10,
+    "name": "Make Up Kit| Womens",
+    "price": 699.0,
+    "category": "personal_care",
+    "img": "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=300&q=80",
+    "description": "Make Up Kit| Womens",
+    "discount": 0,
+    "images": [
+      "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=300&q=80"
+    ]
+  },
+  {
+    "id": 11,
+    "name": "Dove Body Wash",
+    "price": 645.0,
+    "category": "personal_care",
+    "img": "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=300&q=80",
+    "description": "Moisturizing body wash, gentle formula, 500ml.",
+    "discount": 0,
+    "images": [
+      "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=300&q=80"
+    ]
+  },
+  {
+    "id": 12,
+    "name": "Protein Jamaican Shake",
+    "price": 2800.0,
+    "category": "personal_care",
+    "img": "/static/uploads/product_12_s0.jpeg",
+    "description": "Protein Jamaican Shake- Strawberry|Vanilla Flavor",
+    "discount": 0,
+    "images": [
+      "/static/uploads/product_12_s0.jpeg",
+      "/static/uploads/product_12_s1.jpeg"
+    ]
+  },
+  {
+    "id": 13,
+    "name": "Chanel No.5 Inspired",
+    "price": 34.99,
+    "category": "perfumes",
+    "img": "https://images.unsplash.com/photo-1523293182086-7651a899d37f?w=300&q=80",
+    "description": "Classic floral fragrance for women, 50ml EDP.",
+    "discount": 0
+  },
+  {
+    "id": 14,
+    "name": "100% Whey Protein- Body Fortress- 60 Grams",
+    "price": 3100.0,
+    "category": "personal_care",
+    "img": "/static/uploads/product_14_s0.jpeg",
+    "description": "100% Whey Protein- Body Fortress- 60 Grams",
+    "discount": 0,
+    "images": [
+      "/static/uploads/product_14_s0.jpeg",
+      "/static/uploads/product_14_s1.jpeg"
+    ]
+  },
+  {
+    "id": 15,
+    "name": "C4 Original- Pre-workout",
+    "price": 2600.0,
+    "category": "personal_care",
+    "img": "/static/uploads/product_15_s0.jpeg",
+    "description": "CELLUCOR- Pre-workout| Pink Lemonade| 12.7 oz|",
+    "discount": 5,
+    "images": [
+      "/static/uploads/product_15_s0.jpeg",
+      "/static/uploads/product_15_s1.jpeg"
+    ]
+  },
+  {
+    "id": 16,
+    "name": "Gray's Anatomy (Student Ed.)",
+    "price": 39.99,
+    "category": "books",
+    "img": "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=300&q=80",
+    "description": "Essential anatomy reference for healthcare students.",
+    "discount": 0
+  },
+  {
+    "id": 17,
+    "name": "The Body Keeps the Score",
+    "price": 1799.0,
+    "category": "books",
+    "img": "https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=300&q=80",
+    "description": "Bestselling book on trauma and healing by Bessel van der Kolk.",
+    "discount": 0,
+    "images": [
+      "https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=300&q=80"
+    ]
+  },
+  {
+    "id": 18,
+    "name": "Healthy Living Guide 2024",
+    "price": 500.0,
+    "category": "books",
+    "img": "https://images.unsplash.com/photo-1507842217343-583bb7270b66?w=300&q=80",
+    "description": "Complete guide to nutrition, wellness & fitness.",
+    "discount": 0,
+    "images": [
+      "https://images.unsplash.com/photo-1507842217343-583bb7270b66?w=300&q=80"
+    ]
+  },
+  {
+    "id": 19,
+    "name": "Pilot G2 Pen Set (10pk)",
+    "price": 11.99,
+    "category": "stationery",
+    "img": "https://images.unsplash.com/photo-1583485088034-697b5bc54ccd?w=300&q=80",
+    "description": "Smooth gel ink pens, black & blue, 10-pack.",
+    "discount": 0
+  },
+  {
+    "id": 20,
+    "name": "A4 Notebook 200 Pages",
+    "price": 799.0,
+    "category": "stationery",
+    "img": "https://images.unsplash.com/photo-1531346878377-a5be20888e57?w=300&q=80",
+    "description": "Lined hardcover notebook, premium paper.",
+    "discount": 0,
+    "images": [
+      "https://images.unsplash.com/photo-1531346878377-a5be20888e57?w=300&q=80"
+    ]
+  },
+  {
+    "id": 21,
+    "name": "Sticky Notes Assorted",
+    "price": 120.0,
+    "category": "stationery",
+    "img": "https://images.unsplash.com/photo-1586281380349-632531db7ed4?w=300&q=80",
+    "description": "Colorful sticky note pads, 5 colors, 100 sheets each.",
+    "discount": 0,
+    "images": [
+      "https://images.unsplash.com/photo-1586281380349-632531db7ed4?w=300&q=80"
+    ]
+  },
+  {
+    "id": 22,
+    "name": "Stapler + Staples Kit",
+    "price": 9.99,
+    "category": "stationery",
+    "img": "https://images.unsplash.com/photo-1568667256549-094345857637?w=300&q=80",
+    "description": "Desktop stapler with 1000 staples included.",
+    "discount": 0
+  },
+  {
+    "id": 23,
+    "name": "Gerber Baby Food",
+    "price": 300.0,
+    "category": "pharmacy",
+    "img": "/static/uploads/product_23_s0.jpeg",
+    "description": "Gerber Baby Food|Strong, Healthy Baby Care",
+    "discount": 0,
+    "images": [
+      "/static/uploads/product_23_s0.jpeg",
+      "/static/uploads/product_23_s1.jpeg"
+    ]
+  },
+  {
+    "id": 24,
+    "name": "Learn and Play- Lets get ready for new adventures- Kids book",
+    "price": 500.0,
+    "category": "books",
+    "img": "/static/uploads/product_24_s0.jpeg",
+    "images": [
+      "/static/uploads/product_24_s0.jpeg",
+      "/static/uploads/product_24_s1.jpeg"
+    ],
+    "description": "Learn and Play- Lets get ready for new adventures| Kids Book",
+    "discount": 0
+  },
+  {
+    "id": 25,
+    "name": "Make Believe- by Mac Barnett",
+    "price": 999.0,
+    "category": "books",
+    "img": "/static/uploads/product_25_s0.jpeg",
+    "images": [
+      "/static/uploads/product_25_s0.jpeg",
+      "/static/uploads/product_25_s1.jpeg"
+    ],
+    "description": "Make Believe- by Mac Barnett",
+    "discount": 0
+  },
+  {
+    "id": 26,
+    "name": "Birthday Celebration Gift Wrap|Paper|Ribbon|Christmas",
+    "price": 375.0,
+    "category": "pharmacy",
+    "img": "/static/uploads/product_26_s0.jpeg",
+    "images": [
+      "/static/uploads/product_26_s0.jpeg"
+    ],
+    "description": "Birthday Celebration Gift Wrap|Paper|Ribbon|Christmas",
+    "discount": 0
+  },
+  {
+    "id": 27,
+    "name": "Gift Set- Mothers/Fathers Day",
+    "price": 750.0,
+    "category": "pharmacy",
+    "img": "/static/uploads/product_27_s0.jpeg",
+    "images": [
+      "/static/uploads/product_27_s0.jpeg"
+    ],
+    "description": "Gift Set- Mothers/Fathers Day",
+    "discount": 0
+  },
+  {
+    "id": 28,
+    "name": "Gift Box",
+    "price": 550.0,
+    "category": "pharmacy",
+    "img": "/static/uploads/product_28_s0.jpeg",
+    "images": [
+      "/static/uploads/product_28_s0.jpeg"
+    ],
+    "description": "Gift Box",
+    "discount": 0
+  }
+]

@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ 'Edit' if product else 'Add' }} Product – Admin</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --purple: #7B2FBE; --purple-light: #9B59D0; --purple-dark: #561F87;
+            --purple-deep: #3A1060; --purple-pale: #F3E8FF;
+            --gray-50: #faf9fc; --gray-100: #f2eef8; --gray-200: #e4daf0;
+            --gray-600: #5b5170; --gray-700: #3d3356; --gray-900: #1a1230;
+            --red: #dc2626; --green: #16a34a;
+            --shadow: 0 2px 8px rgba(90,30,150,0.10);
+            --shadow-lg: 0 8px 30px rgba(90,30,150,0.16);
+        }
+        body { font-family: 'Inter', sans-serif; background: var(--gray-50); color: var(--gray-900); }
+        a { text-decoration: none; color: inherit; }
+
+        .admin-layout { display: flex; min-height: 100vh; }
+        .sidebar {
+            width: 240px; flex-shrink: 0; background: var(--purple-deep); color: white;
+            padding: 24px 16px; position: sticky; top: 0; height: 100vh; overflow-y: auto;
+        }
+        .sidebar-logo { margin-bottom: 32px; }
+        .sidebar-logo img { height: 48px; border-radius: 6px; background: white; padding: 3px; }
+        .sidebar-logo p { font-size: 0.72rem; color: rgba(255,255,255,0.5); margin-top: 6px; }
+        .sidebar-nav a {
+            display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+            border-radius: 8px; font-size: 0.88rem; font-weight: 500;
+            color: rgba(255,255,255,0.75); margin-bottom: 4px; transition: background 0.15s, color 0.15s;
+        }
+        .sidebar-nav a:hover, .sidebar-nav a.active { background: rgba(255,255,255,0.12); color: white; }
+        .sidebar-nav .icon { font-size: 1rem; width: 20px; text-align: center; }
+        .sidebar-divider { border: none; border-top: 1px solid rgba(255,255,255,0.12); margin: 16px 0; }
+
+        .admin-main { flex: 1; padding: 32px; max-width: 960px; }
+        .page-header { display: flex; align-items: center; gap: 16px; margin-bottom: 28px; }
+        .back-btn {
+            background: var(--purple-pale); color: var(--purple-dark); border: none;
+            border-radius: 8px; padding: 8px 16px; font-size: 0.85rem; font-weight: 600;
+            cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+        }
+        .back-btn:hover { background: #e9d5ff; }
+        .page-header h1 { font-size: 1.4rem; font-weight: 700; }
+
+        .form-card { background: white; border-radius: 14px; box-shadow: var(--shadow); padding: 32px; }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+        .form-full { grid-column: 1 / -1; }
+        .form-group { display: flex; flex-direction: column; gap: 6px; }
+        .field-label { font-size: 0.82rem; font-weight: 700; color: var(--gray-700); text-transform: uppercase; letter-spacing: 0.04em; }
+        input[type=text], input[type=number], input[type=url], select, textarea {
+            padding: 11px 14px; border: 1.5px solid var(--gray-200); border-radius: 10px;
+            font-size: 0.92rem; outline: none; font-family: inherit;
+            transition: border-color 0.15s, box-shadow 0.15s; color: var(--gray-900);
+        }
+        input:focus, select:focus, textarea:focus {
+            border-color: var(--purple); box-shadow: 0 0 0 3px rgba(123,47,190,0.10);
+        }
+        textarea { resize: vertical; min-height: 90px; }
+
+        /* ══ IMAGE GALLERY SECTION ══════════════════════════════════════ */
+        .img-section {
+            border: 2px solid var(--gray-200); border-radius: 14px; overflow: hidden;
+        }
+        .img-section-header {
+            padding: 14px 20px; background: var(--gray-100);
+            border-bottom: 1px solid var(--gray-200);
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .img-section-title { font-size: 0.85rem; font-weight: 700; color: var(--gray-700); }
+        .img-section-hint { font-size: 0.75rem; color: var(--gray-600); }
+        .img-section-body { padding: 20px; }
+
+        /* 4-slot grid */
+        .img-slots {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+        }
+
+        .img-slot {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 2px dashed var(--gray-200);
+            transition: border-color 0.18s;
+            background: var(--gray-50);
+            position: relative;
+        }
+        .img-slot:first-child { border-color: var(--purple-light); }
+        .img-slot.drag-over { border-color: var(--purple); background: var(--purple-pale); }
+
+        /* Slot header */
+        .slot-label {
+            font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.06em; padding: 6px 8px;
+            background: var(--gray-100); color: var(--gray-600);
+            border-bottom: 1px solid var(--gray-200);
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .img-slot:first-child .slot-label { background: var(--purple-pale); color: var(--purple-dark); }
+        .primary-tag {
+            font-size: 0.6rem; background: var(--purple); color: white;
+            border-radius: 4px; padding: 1px 5px; font-weight: 700;
+        }
+
+        /* Drop zone inside slot */
+        .slot-drop {
+            flex: 1; min-height: 120px; cursor: pointer;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            gap: 6px; padding: 12px 8px;
+            position: relative; transition: background 0.15s;
+        }
+        .slot-drop:hover { background: var(--purple-pale); }
+        .slot-drop input[type=file] {
+            position: absolute; inset: 0; opacity: 0;
+            cursor: pointer; width: 100%; height: 100%;
+        }
+        .slot-drop-icon { font-size: 1.6rem; }
+        .slot-drop-text { font-size: 0.7rem; color: var(--gray-600); text-align: center; }
+        .slot-drop-text span { color: var(--purple); font-weight: 600; }
+
+        /* Preview inside slot */
+        .slot-preview {
+            display: none; position: relative;
+            flex-direction: column; min-height: 120px;
+        }
+        .slot-preview.visible { display: flex; }
+        .slot-preview img {
+            width: 100%; aspect-ratio: 1; object-fit: cover;
+        }
+        .slot-preview-bar {
+            background: rgba(26,18,48,0.85); color: white;
+            padding: 6px 8px; font-size: 0.68rem;
+            display: flex; align-items: center; justify-content: space-between; gap: 4px;
+        }
+        .slot-preview-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .slot-clear-btn {
+            background: rgba(220,38,38,0.8); border: none; color: white;
+            border-radius: 4px; padding: 2px 7px; font-size: 0.68rem;
+            font-weight: 700; cursor: pointer; flex-shrink: 0;
+        }
+        .slot-clear-btn:hover { background: var(--red); }
+
+        /* URL input under slot */
+        .slot-url-wrap { padding: 8px; border-top: 1px solid var(--gray-200); background: white; }
+        .slot-url-wrap input {
+            width: 100%; padding: 6px 8px; border: 1px solid var(--gray-200);
+            border-radius: 6px; font-size: 0.72rem; outline: none;
+            font-family: inherit; color: var(--gray-900);
+        }
+        .slot-url-wrap input:focus { border-color: var(--purple); }
+        .slot-url-wrap input::placeholder { color: var(--gray-600); }
+
+        /* Discount pills */
+        .disc-pills { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 2px; }
+        .disc-pill {
+            padding: 7px 16px; border-radius: 20px; border: 2px solid var(--gray-200);
+            background: white; font-size: 0.82rem; font-weight: 600; cursor: pointer;
+            transition: all 0.15s; color: var(--gray-700);
+        }
+        .disc-pill:hover { border-color: var(--purple-light); color: var(--purple); }
+        .disc-pill.selected { background: var(--purple); border-color: var(--purple); color: white; }
+        .disc-pill.selected.zero { background: var(--gray-100); border-color: var(--gray-200); color: var(--gray-700); }
+        #discountInput { display: none; }
+
+        .price-preview {
+            background: var(--purple-pale); border-radius: 8px; padding: 10px 14px;
+            margin-top: 10px; font-size: 0.85rem; color: var(--purple-dark);
+            font-weight: 500; display: none;
+        }
+
+        .btn-submit {
+            background: var(--purple); color: white; border: none; border-radius: 10px;
+            padding: 13px 36px; font-size: 1rem; font-weight: 700; cursor: pointer;
+            transition: background 0.18s, transform 0.12s; margin-top: 24px;
+            display: inline-flex; align-items: center; gap: 8px;
+        }
+        .btn-submit:hover { background: var(--purple-light); transform: translateY(-1px); }
+
+        .alert { padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; font-size: 0.88rem; font-weight: 500; }
+        .alert-success { background: var(--purple-pale); color: var(--purple-dark); border-left: 4px solid var(--purple); }
+        .alert-error { background: #fee2e2; color: #991b1b; border-left: 4px solid var(--red); }
+
+        @media (max-width: 800px) {
+            .img-slots { grid-template-columns: repeat(2, 1fr); }
+            .form-grid { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 700px) {
+            .sidebar { width: 60px; padding: 16px 8px; }
+            .sidebar-logo p, .sidebar-nav span { display: none; }
+            .admin-main { padding: 20px 14px; }
+        }
+        @media (max-width: 480px) {
+            .img-slots { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+<div class="admin-layout">
+    <aside class="sidebar">
+        <div class="sidebar-logo">
+            <img src="{{ url_for('static', filename='screen.png') }}" alt="PillBox">
+            <p>Admin Panel</p>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="{{ url_for('admin_dashboard') }}">
+                <span class="icon">📦</span><span>Products</span>
+            </a>
+            <a href="{{ url_for('admin_add_product') }}" class="{{ 'active' if not product else '' }}">
+                <span class="icon">➕</span><span>Add Product</span>
+            </a>
+            <a href="{{ url_for('admin_orders') }}">
+                <span class="icon">📋</span><span>Orders</span>
+            </a>
+            <a href="{{ url_for('admin_stats') }}">
+                <span class="icon">📊</span><span>Statistics</span>
+            </a>
+            <a href="{{ url_for('admin_staff') }}">
+                <span class="icon">👥</span><span>Staff</span>
+            </a>
+            <hr class="sidebar-divider">
+            <a href="{{ url_for('index') }}" target="_blank">
+                <span class="icon">🏪</span><span>View Store</span>
+            </a>
+            <a href="{{ url_for('admin_logout') }}">
+                <span class="icon">🚪</span><span>Logout</span>
+            </a>
+        </nav>
+    </aside>
+
+    <div class="admin-main">
+        <div class="page-header">
+            <a href="{{ url_for('admin_dashboard') }}" class="back-btn">← Back</a>
+            <h1>{{ 'Edit Product' if product else 'Add New Product' }}</h1>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% for cat, msg in messages %}
+                <div class="alert alert-{{ cat }}">{{ msg }}</div>
+            {% endfor %}
+        {% endwith %}
+
+        <div class="form-card">
+            <form method="post" enctype="multipart/form-data"
+                  action="{{ url_for('admin_edit_product', product_id=product.id) if product else url_for('admin_add_product') }}">
+
+                <input type="hidden" name="discount" id="discountInput"
+                       value="{{ product.discount if product else 0 }}">
+
+                <div class="form-grid">
+
+                    <!-- Name -->
+                    <div class="form-group form-full">
+                        <label class="field-label">Product Name</label>
+                        <input type="text" name="name"
+                               value="{{ product.name if product else '' }}"
+                               placeholder="e.g. Ankle Brace Support" required>
+                    </div>
+
+                    <!-- Price -->
+                    <div class="form-group">
+                        <label class="field-label">Base Price (JMD)</label>
+                        <input type="number" name="price" id="priceInput" step="0.01" min="0"
+                               value="{{ product.price if product else '' }}"
+                               placeholder="0.00" required oninput="updatePricePreview()">
+                    </div>
+
+                    <!-- Category -->
+                    <div class="form-group">
+                        <label class="field-label">Category</label>
+                        <select name="category">
+                            {% for key, lbl in categories.items() %}{% if key != 'all' %}
+                            <option value="{{ key }}"
+                                {{ 'selected' if product and product.category == key else '' }}>
+                                {{ lbl }}
+                            </option>
+                            {% endif %}{% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- ══ IMAGE SLOTS ══ -->
+                    <div class="form-group form-full">
+                        <div class="img-section">
+                            <div class="img-section-header">
+                                <span class="img-section-title">Product Photos</span>
+                                <span class="img-section-hint">Up to 4 photos — first one is the main display image</span>
+                            </div>
+                            <div class="img-section-body">
+                                <div class="img-slots">
+                                    {% for slot in range(4) %}
+                                    {% set existing_url = (existing_images[slot] if existing_images is defined and existing_images|length > slot else '') %}
+                                    <div class="img-slot" id="slot-{{ slot }}"
+                                         ondragover="event.preventDefault(); this.classList.add('drag-over')"
+                                         ondragleave="this.classList.remove('drag-over')"
+                                         ondrop="handleDrop(event, {{ slot }})">
+
+                                        <div class="slot-label">
+                                            Photo {{ slot + 1 }}
+                                            {% if slot == 0 %}<span class="primary-tag">MAIN</span>{% endif %}
+                                        </div>
+
+                                        <!-- Drop zone (shown when empty) -->
+                                        <div class="slot-drop" id="drop-{{ slot }}"
+                                             style="{{ 'display:none' if existing_url else '' }}">
+                                            <input type="file" name="img_file_{{ slot }}"
+                                                   id="file-{{ slot }}"
+                                                   accept="image/png,image/jpeg,image/jpg,image/gif,image/webp"
+                                                   onchange="handleFileSelect({{ slot }}, this)">
+                                            <div class="slot-drop-icon">{{ '🖼️' if slot == 0 else '➕' }}</div>
+                                            <div class="slot-drop-text">
+                                                <span>Click or drag</span><br>PNG, JPG, JPEG, WEBP, GIF
+                                            </div>
+                                        </div>
+
+                                        <!-- Preview (shown when image set) -->
+                                        <div class="slot-preview {{ 'visible' if existing_url else '' }}"
+                                             id="preview-{{ slot }}">
+                                            <img id="preview-img-{{ slot }}"
+                                                 src="{{ existing_url }}" alt="Photo {{ slot + 1 }}">
+                                            <div class="slot-preview-bar">
+                                                <span class="slot-preview-name" id="preview-name-{{ slot }}">
+                                                    {{ 'Existing' if existing_url else '' }}
+                                                </span>
+                                                <button type="button" class="slot-clear-btn"
+                                                        onclick="clearSlot({{ slot }})">✕</button>
+                                            </div>
+                                        </div>
+
+                                        <!-- Hidden keep field + URL input -->
+                                        <input type="hidden" name="img_keep_{{ slot }}"
+                                               id="keep-{{ slot }}" value="{{ existing_url }}">
+                                        <div class="slot-url-wrap">
+                                            <input type="url" name="img_url_{{ slot }}"
+                                                   id="url-{{ slot }}"
+                                                   placeholder="or paste URL…"
+                                                   value=""
+                                                   oninput="handleUrlInput({{ slot }}, this.value)">
+                                        </div>
+
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Description -->
+                    <div class="form-group form-full">
+                        <label class="field-label">Description</label>
+                        <textarea name="description"
+                                  placeholder="Short product description...">{{ product.description if product else '' }}</textarea>
+                    </div>
+
+                    <!-- Discount -->
+                    <div class="form-group form-full">
+                        <label class="field-label">Discount</label>
+                        <div class="disc-pills">
+                            {% set cur_disc = product.discount if product else 0 %}
+                            {% for d in discount_options %}
+                            <button type="button"
+                                    class="disc-pill {{ 'selected' if cur_disc == d else '' }} {{ 'zero' if d == 0 else '' }}"
+                                    onclick="selectDiscount({{ d }}, this)">
+                                {{ 'No Discount' if d == 0 else d|string + '% OFF' }}
+                            </button>
+                            {% endfor %}
+                        </div>
+                        <div class="price-preview" id="pricePreview"></div>
+                    </div>
+
+                </div>
+
+                <button type="submit" class="btn-submit">
+                    {{ '💾 Save Changes' if product else '➕ Add Product' }}
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function showPreview(slot, src, name) {
+        document.getElementById(`drop-${slot}`).style.display = 'none';
+        const preview = document.getElementById(`preview-${slot}`);
+        preview.classList.add('visible');
+        document.getElementById(`preview-img-${slot}`).src = src;
+        document.getElementById(`preview-name-${slot}`).textContent = name;
+    }
+
+    function clearSlot(slot) {
+        // Hide preview, show drop zone
+        document.getElementById(`preview-${slot}`).classList.remove('visible');
+        document.getElementById(`drop-${slot}`).style.display = '';
+        // Clear all inputs for this slot
+        document.getElementById(`file-${slot}`).value = '';
+        document.getElementById(`url-${slot}`).value = '';
+        document.getElementById(`keep-${slot}`).value = '';
+        document.getElementById(`preview-img-${slot}`).src = '';
+    }
+
+    function handleFileSelect(slot, input) {
+        const file = input.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = e => {
+            showPreview(slot, e.target.result, file.name);
+            // Clear URL and keep fields so file takes priority
+            document.getElementById(`url-${slot}`).value = '';
+            document.getElementById(`keep-${slot}`).value = '';
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function handleUrlInput(slot, url) {
+        if (!url) return;
+        // Clear file input so URL is used instead
+        document.getElementById(`file-${slot}`).value = '';
+        document.getElementById(`keep-${slot}`).value = '';
+        showPreview(slot, url, 'Image from URL');
+    }
+
+    function handleDrop(event, slot) {
+        event.preventDefault();
+        document.getElementById(`slot-${slot}`).classList.remove('drag-over');
+        const file = event.dataTransfer.files[0];
+        if (!file) return;
+        // Inject into the file input (can't programmatically set files, so use DataTransfer)
+        try {
+            const dt = new DataTransfer();
+            dt.items.add(file);
+            document.getElementById(`file-${slot}`).files = dt.files;
+        } catch(e) {}
+        const reader = new FileReader();
+        reader.onload = e => showPreview(slot, e.target.result, file.name);
+        reader.readAsDataURL(file);
+        document.getElementById(`url-${slot}`).value = '';
+        document.getElementById(`keep-${slot}`).value = '';
+    }
+
+    // Discount pills
+    function selectDiscount(val, el) {
+        document.querySelectorAll('.disc-pill').forEach(p => p.classList.remove('selected'));
+        el.classList.add('selected');
+        document.getElementById('discountInput').value = val;
+        updatePricePreview();
+    }
+
+    function updatePricePreview() {
+        const price = parseFloat(document.getElementById('priceInput').value);
+        const disc  = parseInt(document.getElementById('discountInput').value || 0);
+        const el    = document.getElementById('pricePreview');
+        if (!price || isNaN(price)) { el.style.display = 'none'; return; }
+        const fmt = n => 'JMD ' + n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        el.innerHTML = disc > 0
+            ? `Base: <strong>${fmt(price)}</strong> → Sale: <strong>${fmt(price*(1-disc/100))}</strong> <em>(${disc}% off)</em>`
+            : `Price: <strong>${fmt(price)}</strong>`;
+        el.style.display = 'block';
+    }
+    updatePricePreview();
+</script>
+</body>
+</html>
