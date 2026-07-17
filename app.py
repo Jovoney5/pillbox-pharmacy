@@ -14,11 +14,33 @@ UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), "static", "uploads")
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
 
-PRODUCTS_FILE = os.path.join(os.path.dirname(__file__), "products.json")
-ORDERS_FILE   = os.path.join(os.path.dirname(__file__), "orders.json")
-USERS_FILE    = os.path.join(os.path.dirname(__file__), "users.json")
-STAFF_FILE    = os.path.join(os.path.dirname(__file__), "staff.json")
-ADS_FILE      = os.path.join(os.path.dirname(__file__), "ads.json")
+PRODUCTS_FILE      = os.path.join(os.path.dirname(__file__), "products.json")
+ORDERS_FILE        = os.path.join(os.path.dirname(__file__), "orders.json")
+USERS_FILE         = os.path.join(os.path.dirname(__file__), "users.json")
+STAFF_FILE         = os.path.join(os.path.dirname(__file__), "staff.json")
+ADS_FILE           = os.path.join(os.path.dirname(__file__), "ads.json")
+APPOINTMENTS_FILE  = os.path.join(os.path.dirname(__file__), "appointments.json")
+
+BRANCHES = [
+    {"id": "great_george", "name": "Main Branch — 87 Great George Street", "short": "87 Great George St"},
+    {"id": "lewis_street", "name": "Second Branch — 17 Lewis Street",       "short": "17 Lewis St"},
+]
+
+APPOINTMENT_REASONS = [
+    "Prescription Consultation",
+    "Medication Review",
+    "Blood Pressure Check",
+    "General Health Inquiry",
+    "Book Order / Stationery Enquiry",
+    "Product Availability Query",
+    "Insurance / Billing Query",
+    "Other",
+]
+
+# Seed appointments.json
+if not os.path.exists(APPOINTMENTS_FILE):
+    with open(APPOINTMENTS_FILE, "w") as _f:
+        json.dump([], _f)
 
 CATEGORIES = {
     "all": "All Products",
@@ -136,6 +158,16 @@ def cart_count():
 def cart_total():
     return sum(item["price"] * item["qty"] for item in get_cart().values())
 
+
+def load_appointments():
+    if not os.path.exists(APPOINTMENTS_FILE):
+        return []
+    with open(APPOINTMENTS_FILE) as f:
+        return json.load(f)
+
+def save_appointments(appts):
+    with open(APPOINTMENTS_FILE, "w") as f:
+        json.dump(appts, f, indent=2)
 
 def load_ads():
     if not os.path.exists(ADS_FILE):
@@ -311,6 +343,13 @@ def inject_globals():
             pass
     dw_id   = session.get("delivery_worker_id")
     dw_name = session.get("delivery_worker_name")
+    # Pending appointment count for admin notification badge
+    pending_appts = 0
+    if session.get("is_admin"):
+        try:
+            pending_appts = sum(1 for a in load_appointments() if a.get("status") == "pending")
+        except Exception:
+            pass
     return {
         "cart_count":       cart_count(),
         "cart_total":       round(cart_total(), 2),
@@ -318,6 +357,9 @@ def inject_globals():
         "is_delivery":      session.get("is_delivery", False),
         "current_user":     current_user,
         "delivery_worker":  {"id": dw_id, "name": dw_name} if dw_id else None,
+        "pending_appts":    pending_appts,
+        "branches":         BRANCHES,
+        "appt_reasons":     APPOINTMENT_REASONS,
     }
 
 
@@ -902,6 +944,76 @@ def admin_add_staff():
     return redirect(url_for("admin_staff"))
 
 
+@app.route("/book-appointment", methods=["POST"])
+def book_appointment():
+    name   = request.form.get("appt_name", "").strip()
+    phone  = request.form.get("appt_phone", "").strip()
+    email  = request.form.get("appt_email", "").strip()
+    branch = request.form.get("appt_branch", "").strip()
+    date   = request.form.get("appt_date", "").strip()
+    time   = request.form.get("appt_time", "").strip()
+    reason = request.form.get("appt_reason", "").strip()
+    notes  = request.form.get("appt_notes", "").strip()
+
+    if not all([name, phone, branch, date, time, reason]):
+        return jsonify({"success": False, "message": "Please fill in all required fields."}), 400
+
+    branch_label = next((b["name"] for b in BRANCHES if b["id"] == branch), branch)
+    appt = {
+        "id":           "APT-" + "".join(random.choices(string.digits, k=5)),
+        "name":         name,
+        "phone":        phone,
+        "email":        email,
+        "branch":       branch,
+        "branch_label": branch_label,
+        "date":         date,
+        "time":         time,
+        "reason":       reason,
+        "notes":        notes,
+        "status":       "pending",
+        "feedback":     "",
+        "created_at":   datetime.datetime.now().isoformat(),
+        "updated_at":   datetime.datetime.now().isoformat(),
+    }
+    appts = load_appointments()
+    appts.append(appt)
+    save_appointments(appts)
+    return jsonify({"success": True, "id": appt["id"],
+                    "message": f"Appointment booked for {date} at {time}. Your reference is {appt['id']}."})
+
+
+@app.route("/admin/appointments")
+@admin_required
+def admin_appointments():
+    appts = load_appointments()
+    appts_sorted = sorted(appts, key=lambda a: (a["date"], a["time"]), reverse=True)
+    pending = sum(1 for a in appts if a["status"] == "pending")
+    completed = sum(1 for a in appts if a["status"] == "completed")
+    missed = sum(1 for a in appts if a["status"] == "missed")
+    return render_template("admin/appointments.html", appointments=appts_sorted,
+                           pending=pending, completed=completed, missed=missed)
+
+
+@app.route("/admin/appointments/<appt_id>/update", methods=["POST"])
+@admin_required
+def admin_update_appointment(appt_id):
+    appts = load_appointments()
+    appt  = next((a for a in appts if a["id"] == appt_id), None)
+    if not appt:
+        return jsonify({"success": False, "message": "Appointment not found"}), 404
+    appt["status"]     = request.form.get("status", appt["status"])
+    appt["feedback"]   = request.form.get("feedback", appt.get("feedback", ""))
+    appt["updated_at"] = datetime.datetime.now().isoformat()
+    save_appointments(appts)
+    return jsonify({"success": True, "status": appt["status"]})
+
+
+@app.route("/admin/manual")
+@admin_required
+def admin_manual():
+    return render_template("admin/manual.html")
+
+
 @app.route("/admin/staff/delete/<staff_id>", methods=["POST"])
 @admin_required
 def admin_delete_staff(staff_id):
@@ -1005,6 +1117,12 @@ def delivery_login():
             return redirect(url_for("delivery_dashboard"))
         flash("Invalid credentials.", "error")
     return render_template("delivery/login.html")
+
+
+@app.route("/delivery/manual")
+@delivery_required
+def delivery_manual():
+    return render_template("delivery/manual.html")
 
 
 @app.route("/delivery/logout")

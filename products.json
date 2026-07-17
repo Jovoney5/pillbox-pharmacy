@@ -183,12 +183,15 @@
   },
   {
     "id": 16,
-    "name": "Gray's Anatomy (Student Ed.)",
-    "price": 39.99,
+    "name": "Driver's Manual- Jamaica",
+    "price": 550.0,
     "category": "books",
-    "img": "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=300&q=80",
-    "description": "Essential anatomy reference for healthcare students.",
-    "discount": 0
+    "img": "/static/uploads/product_16_s0.png",
+    "description": "Driver's Manual Essential Roa reference for drivers",
+    "discount": 0,
+    "images": [
+      "/static/uploads/product_16_s0.png"
+    ]
   },
   {
     "id": 17,
@@ -204,14 +207,14 @@
   },
   {
     "id": 18,
-    "name": "Healthy Living Guide 2024",
-    "price": 500.0,
+    "name": "Social Studies for Jamaica Grade 9",
+    "price": 800.0,
     "category": "books",
-    "img": "https://images.unsplash.com/photo-1507842217343-583bb7270b66?w=300&q=80",
-    "description": "Complete guide to nutrition, wellness & fitness.",
+    "img": "/static/uploads/product_18_s0.png",
+    "description": "Social Studies for Jamaica Grade 9| High School",
     "discount": 0,
     "images": [
-      "https://images.unsplash.com/photo-1507842217343-583bb7270b66?w=300&q=80"
+      "/static/uploads/product_18_s0.png"
     ]
   },
   {
@@ -250,11 +253,15 @@
   {
     "id": 22,
     "name": "Stapler + Staples Kit",
-    "price": 9.99,
+    "price": 800.0,
     "category": "stationery",
-    "img": "https://images.unsplash.com/photo-1568667256549-094345857637?w=300&q=80",
+    "img": "/static/uploads/product_22_s0.png",
     "description": "Desktop stapler with 1000 staples included.",
-    "discount": 0
+    "discount": 0,
+    "images": [
+      "/static/uploads/product_22_s0.png",
+      "/static/uploads/product_22_s1.png"
+    ]
   },
   {
     "id": 23,

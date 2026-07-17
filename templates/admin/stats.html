@@ -143,8 +143,10 @@
             <a href="{{ url_for('admin_staff') }}">
                 <span class="icon">👥</span><span>Staff</span>
             </a>
+            <a href="{{ url_for('admin_appointments') }}"><span class="icon">&#9723;</span><span>Appointments {% if pending_appts > 0 %}<span style="background:#dc2626;color:white;border-radius:10px;padding:1px 7px;font-size:0.68rem;font-weight:700;margin-left:4px;">{{ pending_appts }}</span>{% endif %}</span></a>
             <a href="/admin/ads"><span class="icon">📢</span><span>Ad Manager</span></a>
             <hr class="sidebar-divider">
+            <a href="{{ url_for('admin_manual') }}" class="{{ 'active' if request.endpoint == 'admin_manual' else '' }}"><span class="icon">&#9723;</span><span>Manual</span></a>
             <a href="{{ url_for('index') }}" target="_blank">
                 <span class="icon">🏪</span><span>View Store</span>
             </a>

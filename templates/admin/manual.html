@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Manual – PillBox Pharmacy</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --purple: #7B2FBE; --purple-light: #9B59D0; --purple-dark: #561F87;
+            --purple-deep: #3A1060; --purple-pale: #F3E8FF;
+            --gray-50: #faf9fc; --gray-100: #f2eef8; --gray-200: #e4daf0;
+            --gray-600: #5b5170; --gray-700: #3d3356; --gray-900: #1a1230;
+            --red: #dc2626;
+            --shadow: 0 2px 8px rgba(90,30,150,0.10);
+        }
+        body { font-family: 'Inter', sans-serif; background: var(--gray-50); color: var(--gray-900); }
+        a { text-decoration: none; color: inherit; }
+
+        .admin-layout { display: flex; min-height: 100vh; }
+        .sidebar {
+            width: 240px; flex-shrink: 0; background: var(--purple-deep); color: white;
+            padding: 24px 16px; position: sticky; top: 0; height: 100vh; overflow-y: auto;
+        }
+        .sidebar-logo { margin-bottom: 32px; }
+        .sidebar-logo img { height: 48px; border-radius: 6px; background: white; padding: 3px; }
+        .sidebar-logo p { font-size: 0.72rem; color: rgba(255,255,255,0.5); margin-top: 6px; }
+        .sidebar-nav a {
+            display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+            border-radius: 8px; font-size: 0.88rem; font-weight: 500;
+            color: rgba(255,255,255,0.75); margin-bottom: 4px; transition: background 0.15s;
+        }
+        .sidebar-nav a:hover, .sidebar-nav a.active { background: rgba(255,255,255,0.12); color: white; }
+        .sidebar-nav .icon { font-size: 1rem; width: 20px; text-align: center; }
+        .sidebar-divider { border: none; border-top: 1px solid rgba(255,255,255,0.12); margin: 16px 0; }
+
+        /* Main */
+        .admin-main { flex: 1; padding: 40px 48px; max-width: 960px; }
+
+        .page-header { margin-bottom: 36px; }
+        .page-header h1 { font-size: 1.8rem; font-weight: 800; color: var(--gray-900); margin-bottom: 6px; }
+        .page-header p { font-size: 0.95rem; color: var(--gray-600); line-height: 1.6; }
+        .version-tag {
+            display: inline-block; margin-top: 10px;
+            background: var(--purple-pale); color: var(--purple-dark);
+            border-radius: 20px; padding: 3px 14px; font-size: 0.75rem; font-weight: 700;
+        }
+
+        /* TOC */
+        .toc {
+            background: white; border-radius: 12px; box-shadow: var(--shadow);
+            padding: 22px 26px; margin-bottom: 36px; border-left: 4px solid var(--purple);
+        }
+        .toc h3 { font-size: 0.82rem; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.07em; color: var(--gray-600); margin-bottom: 14px; }
+        .toc ol { padding-left: 18px; }
+        .toc li { margin-bottom: 7px; }
+        .toc a { font-size: 0.9rem; font-weight: 500; color: var(--purple); }
+        .toc a:hover { text-decoration: underline; }
+
+        /* Sections */
+        .section {
+            background: white; border-radius: 14px; box-shadow: var(--shadow);
+            padding: 30px 32px; margin-bottom: 24px;
+        }
+        .section-header {
+            display: flex; align-items: center; gap: 14px;
+            padding-bottom: 18px; margin-bottom: 24px;
+            border-bottom: 2px solid var(--purple-pale);
+        }
+        .section-num {
+            width: 36px; height: 36px; border-radius: 50%;
+            background: var(--purple); color: white;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.95rem; font-weight: 800; flex-shrink: 0;
+        }
+        .section-header h2 { font-size: 1.15rem; font-weight: 700; color: var(--gray-900); }
+        .section-header p { font-size: 0.82rem; color: var(--gray-600); margin-top: 2px; }
+
+        /* Steps */
+        .steps { display: flex; flex-direction: column; gap: 0; }
+        .step {
+            display: flex; gap: 16px; padding: 14px 0;
+            border-bottom: 1px solid var(--gray-100);
+        }
+        .step:last-child { border-bottom: none; padding-bottom: 0; }
+        .step-arrow {
+            font-size: 0.8rem; font-weight: 800; color: var(--purple);
+            flex-shrink: 0; padding-top: 2px; min-width: 20px;
+        }
+        .step-body { flex: 1; }
+        .step-title { font-size: 0.92rem; font-weight: 700; color: var(--gray-900); margin-bottom: 3px; }
+        .step-desc { font-size: 0.84rem; color: var(--gray-600); line-height: 1.6; }
+
+        /* Note box */
+        .note {
+            background: var(--purple-pale); border-left: 3px solid var(--purple);
+            border-radius: 0 8px 8px 0; padding: 12px 16px;
+            margin-top: 14px; font-size: 0.83rem; color: var(--purple-dark); line-height: 1.6;
+        }
+        .note strong { color: var(--purple-dark); }
+
+        /* Warning box */
+        .warning {
+            background: #fff7ed; border-left: 3px solid #f97316;
+            border-radius: 0 8px 8px 0; padding: 12px 16px;
+            margin-top: 14px; font-size: 0.83rem; color: #9a3412; line-height: 1.6;
+        }
+
+        /* Key badge */
+        .key {
+            display: inline-block; background: var(--gray-100); border: 1px solid var(--gray-200);
+            border-radius: 5px; padding: 1px 8px; font-size: 0.78rem;
+            font-weight: 600; color: var(--gray-700); font-family: monospace;
+        }
+
+        /* Path */
+        .path {
+            display: inline-block; background: var(--gray-900); color: #a5f3fc;
+            border-radius: 5px; padding: 2px 10px; font-size: 0.78rem;
+            font-family: monospace; font-weight: 500;
+        }
+
+        @media (max-width: 900px) {
+            .sidebar { width: 60px; padding: 16px 8px; }
+            .sidebar-logo p, .sidebar-nav span { display: none; }
+            .admin-main { padding: 24px 18px; }
+        }
+    </style>
+</head>
+<body>
+<div class="admin-layout">
+    <aside class="sidebar">
+        <div class="sidebar-logo">
+            <img src="{{ url_for('static', filename='screen.png') }}" alt="PillBox">
+            <p>Admin Panel</p>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="{{ url_for('admin_dashboard') }}"><span class="icon">&#9723;</span><span>Products</span></a>
+            <a href="{{ url_for('admin_add_product') }}"><span class="icon">+</span><span>Add Product</span></a>
+            <a href="{{ url_for('admin_orders') }}"><span class="icon">&#9723;</span><span>Orders</span></a>
+            <a href="{{ url_for('admin_stats') }}"><span class="icon">&#9723;</span><span>Statistics</span></a>
+            <a href="{{ url_for('admin_staff') }}"><span class="icon">&#9723;</span><span>Staff</span></a>
+            <a href="{{ url_for('admin_appointments') }}" class="{{ 'active' if request.endpoint == 'admin_appointments' else '' }}"><span class="icon">&#9723;</span><span>Appointments {% if pending_appts > 0 %}<span style="background:#dc2626;color:white;border-radius:10px;padding:1px 7px;font-size:0.68rem;font-weight:700;margin-left:4px;">{{ pending_appts }}</span>{% endif %}</span></a>
+            <a href="{{ url_for('admin_ads') }}"><span class="icon">&#9723;</span><span>Ad Manager</span></a>
+            <a href="{{ url_for('admin_manual') }}" class="active"><span class="icon">&#9723;</span><span>Manual</span></a>
+            <hr class="sidebar-divider">
+            <a href="{{ url_for('index') }}" target="_blank"><span class="icon">&#9723;</span><span>View Store</span></a>
+            <a href="{{ url_for('admin_logout') }}"><span class="icon">&#9723;</span><span>Logout</span></a>
+        </nav>
+    </aside>
+
+    <div class="admin-main">
+        <div class="page-header">
+            <h1>Admin Manual</h1>
+            <p>A complete guide to managing The PillBox Pharmacy Ltd. admin portal. Read through each section before making changes to the live store.</p>
+            <span class="version-tag">Version 1.0 — PillBox Pharmacy</span>
+        </div>
+
+        <!-- TOC -->
+        <div class="toc">
+            <h3>Contents</h3>
+            <ol>
+                <li><a href="#products">Managing Products</a></li>
+                <li><a href="#orders">Managing Orders</a></li>
+                <li><a href="#ads">Ad Manager</a></li>
+                <li><a href="#stats">Statistics & Reports</a></li>
+                <li><a href="#staff">Staff Management</a></li>
+                <li><a href="#discounts">Setting Discounts</a></li>
+                <li><a href="#delivery">Delivery Workflow</a></li>
+                <li><a href="#login">Login & Access</a></li>
+            </ol>
+        </div>
+
+        <!-- 1. Products -->
+        <div class="section" id="products">
+            <div class="section-header">
+                <div class="section-num">1</div>
+                <div>
+                    <h2>Managing Products</h2>
+                    <p>Add, edit, and remove products from the store.</p>
+                </div>
+            </div>
+            <div class="steps">
+                <div class="step">
+                    <div class="step-arrow">-&gt;</div>
+                    <div class="step-body">
+                        <div class="step-title">Viewing all products</div>
+                        <div class="step-desc">Click <strong>Products</strong> in the left sidebar. The dashboard shows every product with its image, category, base price, discount, and sale price. Use the search bar at the top right to filter by name.</div>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-arrow">-&gt;</div>
+                    <div class="step-body">
+                        <div class="step-title">Adding a new product</div>
+                        <div class="step-desc">Click <strong>Add Product</strong> in the sidebar. Fill in the product name, price in JMD, category, description, and upload up to 4 photos. The first photo becomes the main display image. Click <strong>Add Product</strong> to save.</div>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-arrow">-&gt;</div>
+                    <div class="step-body">
+                        <div class="step-title">Uploading product photos</div>
+                        <div class="step-desc">On the Add or Edit product form, you will see 4 photo slots. For each slot you can either drag and drop an image file, click the slot to browse your device, or paste an image URL into the field below the slot. Accepted formats: PNG, JPG, JPEG, WEBP, GIF.</div>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-arrow">-&gt;</div>
+                    <div class="step-body">
+                        <div class="step-title">Editing an existing product</div>
+                        <div class="step-desc">On the Products dashboard, find the product row and click the <strong>Edit</strong> button. All fields can be changed including name, price, category, description, photos, and discount. Click <strong>Save Changes</strong> when done. Changes go live on the store immediately.</div>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-arrow">-&gt;</div>
+                    <div class="step-body">
+                        <div class="step-title">Deleting a product</div>
+                        <div class="step-desc">On the Products dashboard, click the <strong>Delete</strong> button next to a product. A confirmation prompt will appear. Once deleted, the product is removed from the store and cannot be recovered.</div>
+                    </div>
+                </div>
+            </div>
+            <div class="warning">
+                <strong>Important:</strong> Deleting a product is permanent. If you want to temporarily hide a product, edit it and remove its name or set the price to zero rather than deleting it.
+            </div>
+        </div>
+
+        <!-- 2. Orders -->
+        <div class="section" id="orders">
+            <div class="section-header">
+                <div class="section-num">2</div>
+                <div>
+                    <h2>Managing Orders</h2>
+                    <p>View customer orders and update their status in real time.</p>
+                </div>
+            </div>
+            <div class="steps">
+                <div class="step">
+                    <div class="step-arrow">-&gt;</div>
+                    <div class="step-body">
+                        <div class="step-title">Viewing all orders</div>
+                        <div class="step-desc">Click <strong>Orders</strong> in the sidebar. You will see a table of every order with the order ID, customer name, email, date, item count, total, fulfillment type (delivery or pickup), parish, current status, and assigned delivery worker.</div>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-arrow">-&gt;</div>
+                    <div class="step-body">
+                        <div class="step-title">Updating an order status</div>
+                        <div class="step-desc">In the Status column for any order, click the dropdown and select the new status. The change saves automatically with no page reload required. Available statuses are: <span class="key">pending</span> <span class="key">processing</span> <span class="key">out for delivery</span> <span class="key">delivered</span> <span class="key">cancelled</span> <span class="key">refunded</span> <span class="key">returned</span>.</div>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-arrow">-&gt;</div>
+                    <div class="step-body">
+                        <div class="step-title">Fulfillment types</div>
+                        <div class="step-desc">Each order shows either <strong>Delivery</strong> (customer wants it brought to their address) or <strong>Pickup</strong> (customer will collect in store). For pickup orders, no delivery worker needs to be assigned.</div>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-arrow">-&gt;</div>
+                    <div class="step-body">
+                        <div class="step-title">Refunds and returns</div>
+                        <div class="step-desc">To process a refund or return, find the order and change its status to <span class="key">refunded</span> or <span class="key">returned</span>. These orders are tracked separately in the Statistics page under Refunds and Returns.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. Ad Manager -->
+        <div class="section" id="ads">
+            <div class="section-header">
+                <div class="section-num">3</div>
+                <div>
+                    <h2>Ad Manager</h2>
+                    <p>Control which products appear in the homepage advertisement widget.</p>
+                </div>
+            </div>
+            <div class="steps">
+                <div class="step">
+                    <div class="step-arrow">-&gt;</div>
+                    <div class="step-body">
+                        <div class="step-title">How the ad widget works</div>
+                        <div class="step-desc">The homepage shows a rotating ad panel on the right side of the hero section. Up to 3 products can run as ads at the same time. Each ad shows the product photo, name, price, and a live countdown timer visible to customers.</div>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-arrow">-&gt;</div>
+                    <div class="step-body">
+                        <div class="step-title">Setting an ad</div>
+                        <div class="step-desc">Click <strong>Ad Manager</strong> in the sidebar. Scroll to the product table at the bottom. Find the product you want to advertise, then click one of the blue duration buttons: <span class="key">2 Minutes</span> <span class="key">30 Minutes</span> <span class="key">1 Hour</span> <span class="key">6 Hours</span> <span class="key">1 Day</span> <span class="key">2 Days</span> <span class="key">7 Days</span>. The ad goes live immediately.</div>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-arrow">-&gt;</div>
+                    <div class="step-body">
+                        <div class="step-title">Removing an ad</div>
+                        <div class="step-desc">The top of the Ad Manager page shows all currently running ads with their countdown timers. Click <strong>Remove Ad</strong> on any card to stop it immediately. Ads also stop automatically when their time expires.</div>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-arrow">-&gt;</div>
+                    <div class="step-body">
+                        <div class="step-title">Ad limits</div>
+                        <div class="step-desc">A maximum of 3 ads can run at the same time. If you try to add a 4th, you will see an error message. Remove one of the existing ads first before adding a new one.</div>
+                    </div>
+                </div>
+            </div>
+            <div class="note">
+                <strong>Tip:</strong> Use the 2-minute duration when testing that an ad looks correct before setting it to run for longer.
+            </div>
+        </div>
+
+        <!-- 4. Statistics -->
+        <div class="section" id="stats">
+            <div class="section-header">
+                <div class="section-num">4</div>
+                <div>
+                    <h2>Statistics & Reports</h2>
+                    <p>Monitor revenue, order trends, and product performance.</p>
+                </div>
+            </div>
+            <div class="steps">
+                <div class="step">
+                    <div class="step-arrow">-&gt;</div>
+                    <div class="step-body">
+                        <div class="step-title">Accessing statistics</div>
+                        <div class="step-desc">Click <strong>Statistics</strong> in the sidebar. The page loads automatically with live data from all orders on record.</div>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-arrow">-&gt;</div>
+                    <div class="step-body">
+                        <div class="step-title">Summary cards</div>
+                        <div class="step-desc">At the top of the page are four summary cards showing: <strong>Total Revenue</strong> (from delivered orders only), <strong>Total Orders</strong> (all statuses), <strong>Delivered</strong> (successfully completed), and <strong>Refunds and Returns</strong> (combined count).</div>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-arrow">-&gt;</div>
+                    <div class="step-body">
+                        <div class="step-title">Charts</div>
+                        <div class="step-desc">Four charts are displayed below the summary cards. The bar chart shows daily revenue for the last 7 days. The pie chart breaks down sales by product category. The doughnut chart shows the proportion of orders by status. The horizontal bar chart shows the top 10 best-selling products by quantity.</div>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-arrow">-&gt;</div>
+                    <div class="step-body">
+                        <div class="step-title">Recent orders table</div>
+                        <div class="step-desc">The bottom of the statistics page shows the 20 most recent orders with their status colour codes: yellow for pending, blue for processing, orange for out for delivery, green for delivered, red for cancelled, purple for refunded, and grey for returned.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 5. Staff -->
+        <div class="section" id="staff">
+            <div class="section-header">
+                <div class="section-num">5</div>
+                <div>
+                    <h2>Staff Management</h2>
+                    <p>Add admin users and delivery workers, and control their access.</p>
+                </div>
+            </div>
+            <div class="steps">
+                <div class="step">
+                    <div class="step-arrow">-&gt;</div>
+                    <div class="step-body">
+                        <div class="step-title">Viewing staff</div>
+                        <div class="step-desc">Click <strong>Staff</strong> in the sidebar. You will see all current staff members with their name, username, and role. Admin staff have a purple badge. Delivery workers have a blue badge.</div>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-arrow">-&gt;</div>
+                    <div class="step-body">
+                        <div class="step-title">Adding a new staff member</div>
+                        <div class="step-desc">Scroll to the <strong>Add Staff Member</strong> form at the bottom of the Staff page. Enter their full name, a username they will use to log in, a password, and select their role — either <span class="key">admin</span> or <span class="key">delivery</span>. Click <strong>Add Staff Member</strong> to save.</div>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-arrow">-&gt;</div>
+                    <div class="step-body">
+                        <div class="step-title">Role differences</div>
+                        <div class="step-desc">Staff with the <strong>admin</strong> role can access the full admin panel including products, orders, statistics, staff management, and the ad manager. Staff with the <strong>delivery</strong> role can only access the delivery portal at <span class="path">/delivery/login</span> where they see their assigned orders.</div>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-arrow">-&gt;</div>
+                    <div class="step-body">
+                        <div class="step-title">Removing a staff member</div>
+                        <div class="step-desc">On the Staff page, click the <strong>Delete</strong> button next to the staff member's row. A confirmation prompt will appear. Once removed, that username and password will no longer work.</div>
+                    </div>
+                </div>
+            </div>
+            <div class="warning">
+                <strong>Important:</strong> Do not delete the main admin account. If you delete your own account you will be locked out of the admin panel.
+            </div>
+        </div>
+
+        <!-- 6. Discounts -->
+        <div class="section" id="discounts">
+            <div class="section-header">
+                <div class="section-num">6</div>
+                <div>
+                    <h2>Setting Discounts</h2>
+                    <p>Apply percentage discounts to individual products.</p>
+                </div>
+            </div>
+            <div class="steps">
+                <div class="step">
+                    <div class="step-arrow">-&gt;</div>
+                    <div class="step-body">
+                        <div class="step-title">Quick discount from the dashboard</div>
+                        <div class="step-desc">On the Products dashboard, each product row has a discount dropdown in the Discount column. Click the dropdown and select a percentage. The sale price in the next column updates immediately and the change saves automatically without a page reload.</div>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-arrow">-&gt;</div>
+                    <div class="step-body">
+                        <div class="step-title">Setting discount while editing a product</div>
+                        <div class="step-desc">On the Edit Product form, scroll to the Discount section. Click any of the pill buttons to select a percentage: 0% removes the discount, and options go up to 50%. A live price preview below the pills shows exactly what the customer will pay.</div>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-arrow">-&gt;</div>
+                    <div class="step-body">
+                        <div class="step-title">How discounts appear to customers</div>
+                        <div class="step-desc">When a product has a discount, customers see the original price struck through in grey, the discounted price in purple, and a green badge showing the percentage saved. This appears on the shop grid, product detail page, and the homepage featured section.</div>
+                    </div>
+                </div>
+            </div>
+            <div class="note">
+                <strong>Note:</strong> Discounts apply to the base price. If a product is already in a customer's cart and you later change the discount, the cart will continue to show the price from when the item was added.
+            </div>
+        </div>
+
+        <!-- 7. Delivery workflow -->
+        <div class="section" id="delivery">
+            <div class="section-header">
+                <div class="section-num">7</div>
+                <div>
+                    <h2>Delivery Workflow</h2>
+                    <p>How orders move from placed to delivered.</p>
+                </div>
+            </div>
+            <div class="steps">
+                <div class="step">
+                    <div class="step-arrow">-&gt;</div>
+                    <div class="step-body">
+                        <div class="step-title">Step 1 — Customer places order</div>
+                        <div class="step-desc">When a customer completes checkout, the order is created with the status <span class="key">processing</span>. The customer receives a 6-character confirmation code on the order confirmation screen (example: PB4821). They must keep this code to verify delivery.</div>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-arrow">-&gt;</div>
+                    <div class="step-body">
+                        <div class="step-title">Step 2 — Admin reviews the order</div>
+                        <div class="step-desc">Go to the Orders page and confirm the order details. You can update the status to <span class="key">processing</span> to signal that it is being packed. Orders with fulfillment type <strong>Delivery</strong> will appear in the delivery worker's dashboard.</div>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-arrow">-&gt;</div>
+                    <div class="step-body">
+                        <div class="step-title">Step 3 — Delivery worker claims the order</div>
+                        <div class="step-desc">The delivery worker logs in at <span class="path">/delivery/login</span> and sees all unassigned delivery orders for today. They click <strong>Claim Order</strong> to assign it to themselves. The status changes to <span class="key">out for delivery</span>.</div>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-arrow">-&gt;</div>
+                    <div class="step-body">
+                        <div class="step-title">Step 4 — Delivery worker verifies with customer code</div>
+                        <div class="step-desc">After delivering to the customer, the worker clicks <strong>Verify Delivery</strong> on their dashboard. They ask the customer for their 6-character code and type it in. If the code matches, the order is marked as <span class="key">delivered</span> and the timestamp is recorded.</div>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-arrow">-&gt;</div>
+                    <div class="step-body">
+                        <div class="step-title">Step 5 — Admin confirms on orders page</div>
+                        <div class="step-desc">Once verified by the delivery worker, the order status on the Orders page automatically updates to <span class="key">delivered</span>. The delivery time is recorded and the order appears in the Statistics page revenue totals.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 8. Login -->
+        <div class="section" id="login">
+            <div class="section-header">
+                <div class="section-num">8</div>
+                <div>
+                    <h2>Login & Access</h2>
+                    <p>Portal addresses and login instructions for each role.</p>
+                </div>
+            </div>
+            <div class="steps">
+                <div class="step">
+                    <div class="step-arrow">-&gt;</div>
+                    <div class="step-body">
+                        <div class="step-title">Admin portal</div>
+                        <div class="step-desc">Access at <span class="path">/admin/login</span>. Enter your admin username and password. After logging in you will be taken to the Products dashboard. The admin session remains active until you click Logout in the sidebar.</div>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-arrow">-&gt;</div>
+                    <div class="step-body">
+                        <div class="step-title">Delivery portal</div>
+                        <div class="step-desc">Delivery workers access their own portal at <span class="path">/delivery/login</span>. They use the username and password set up by the admin in the Staff section. Delivery workers cannot access the admin panel.</div>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-arrow">-&gt;</div>
+                    <div class="step-body">
+                        <div class="step-title">Customer accounts</div>
+                        <div class="step-desc">Customers create their own accounts at <span class="path">/register</span> or sign in at <span class="path">/login</span>. Customer accounts are separate from admin and delivery staff accounts. Customers cannot access any admin or delivery pages.</div>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-arrow">-&gt;</div>
+                    <div class="step-body">
+                        <div class="step-title">Changing a password</div>
+                        <div class="step-desc">To change a staff member's password, go to <strong>Staff</strong>, delete the existing account, and re-add them with the same username and a new password. To change the main admin password, update the value directly in <span class="path">staff.json</span> on the server.</div>
+                    </div>
+                </div>
+            </div>
+            <div class="note">
+                <strong>Reminder:</strong> Always click <strong>Logout</strong> in the sidebar when you are done. Do not share your admin password with delivery staff — create separate accounts for each person.
+            </div>
+        </div>
+
+    </div>
+</div>
+</body>
+</html>

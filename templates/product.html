@@ -10,35 +10,55 @@
     .product-detail {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 40px;
+        gap: 36px;
         background: white;
         border-radius: 16px;
-        padding: 36px;
+        padding: 28px;
         box-shadow: var(--shadow);
         margin-bottom: 40px;
     }
-    .product-detail img {
-        width: 100%;
-        border-radius: 12px;
-        object-fit: cover;
-        max-height: 380px;
-    }
-    /* Gallery */
-    .gallery-main {
-        width: 100%; border-radius: 12px; object-fit: cover;
-        max-height: 380px; cursor: zoom-in;
-        transition: opacity 0.2s;
+
+    /* Gallery — thumbs left, main right, Amazon style */
+    .gallery-wrap {
+        display: flex;
+        flex-direction: row;
+        gap: 12px;
+        align-items: flex-start;
     }
     .gallery-thumbs {
-        display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        flex-shrink: 0;
     }
     .gallery-thumb {
-        width: 68px; height: 68px; border-radius: 8px; object-fit: cover;
-        border: 2.5px solid var(--gray-200); cursor: pointer;
-        transition: border-color 0.15s, transform 0.15s;
+        width: 64px;
+        height: 64px;
+        border-radius: 8px;
+        object-fit: contain;
+        background: var(--gray-50);
+        padding: 4px;
+        border: 2px solid var(--gray-200);
+        cursor: pointer;
+        transition: border-color 0.18s, box-shadow 0.18s;
+        display: block;
     }
-    .gallery-thumb:hover { transform: scale(1.05); }
-    .gallery-thumb.active { border-color: var(--purple); }
+    .gallery-thumb:hover { border-color: var(--purple-light); box-shadow: 0 0 0 3px var(--purple-pale); }
+    .gallery-thumb.active  { border-color: var(--purple);       box-shadow: 0 0 0 3px var(--purple-pale); }
+
+    .gallery-main {
+        flex: 1;
+        width: 100%;
+        height: 400px;
+        border-radius: 12px;
+        object-fit: contain;
+        object-position: center;
+        background: var(--gray-50);
+        border: 1.5px solid var(--gray-200);
+        padding: 12px;
+        transition: opacity 0.2s;
+        display: block;
+    }
     .product-info { display: flex; flex-direction: column; justify-content: center; }
     .product-cat-badge {
         display: inline-block;
@@ -114,6 +134,55 @@
     .product-card .name { font-weight: 600; font-size: 0.9rem; margin-bottom: 6px; }
     .product-card .price { font-weight: 700; color: var(--purple); }
 
+    /* ── Digital Copy Block ── */
+    .format-toggle {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-bottom: 18px;
+    }
+    .format-card {
+        border: 2px solid var(--gray-200);
+        border-radius: 12px;
+        padding: 14px 12px;
+        cursor: pointer;
+        transition: border-color 0.18s, background 0.18s, box-shadow 0.18s;
+        text-align: center;
+        background: white;
+        user-select: none;
+    }
+    .format-card:hover { border-color: var(--purple-light); background: var(--purple-pale); }
+    .format-card.selected {
+        border-color: var(--purple);
+        background: var(--purple-pale);
+        box-shadow: 0 0 0 3px rgba(123,47,190,0.12);
+    }
+    .format-icon { font-size: 1.6rem; display: block; margin-bottom: 6px; }
+    .format-title { font-size: 0.88rem; font-weight: 700; color: var(--gray-900); }
+    .format-card.selected .format-title { color: var(--purple-dark); }
+    .format-price { font-size: 0.92rem; font-weight: 700; color: var(--purple); margin-top: 4px; }
+    .format-save {
+        display: inline-block;
+        background: #dcfce7; color: #16a34a;
+        border-radius: 6px; padding: 1px 7px;
+        font-size: 0.68rem; font-weight: 700; margin-top: 4px;
+    }
+    .format-sub { font-size: 0.7rem; color: var(--gray-600); margin-top: 3px; }
+    .digital-features {
+        background: var(--purple-pale);
+        border-radius: 10px;
+        padding: 12px 14px;
+        margin-bottom: 16px;
+        font-size: 0.8rem;
+        color: var(--purple-dark);
+        display: none;
+        gap: 6px;
+        flex-direction: column;
+    }
+    .digital-features.visible { display: flex; }
+    .digital-feat { display: flex; align-items: center; gap: 8px; }
+    .digital-feat span { font-size: 0.92rem; }
+
     @media (max-width: 650px) {
         .product-detail { grid-template-columns: 1fr; }
     }
@@ -132,16 +201,18 @@
 <div class="product-detail">
     <div>
         {% set imgs = product.images if product.images else [product.img] %}
-        <img id="galleryMain" class="gallery-main" src="{{ imgs[0] }}" alt="{{ product.name }}">
-        {% if imgs|length > 1 %}
-        <div class="gallery-thumbs">
-            {% for img in imgs %}
-            <img class="gallery-thumb {{ 'active' if loop.index0 == 0 else '' }}"
-                 src="{{ img }}" alt="{{ product.name }} photo {{ loop.index }}"
-                 onclick="switchGallery(this, '{{ img }}')">
-            {% endfor %}
+        <div class="gallery-wrap">
+            {% if imgs|length > 1 %}
+            <div class="gallery-thumbs">
+                {% for img in imgs %}
+                <img class="gallery-thumb {{ 'active' if loop.index0 == 0 else '' }}"
+                     src="{{ img }}" alt="{{ product.name }} photo {{ loop.index }}"
+                     onclick="switchGallery(this, '{{ img }}')">
+                {% endfor %}
+            </div>
+            {% endif %}
+            <img id="galleryMain" class="gallery-main" src="{{ imgs[0] }}" alt="{{ product.name }}">
         </div>
-        {% endif %}
     </div>
     <div class="product-info">
         <span class="product-cat-badge">{{ product.category.replace('_', ' ').title() }}</span>
@@ -154,6 +225,34 @@
         {% endif %}
         <p class="product-desc">{{ product.description }}</p>
 
+        {% if product.category == 'books' %}
+        {% set digital_price = (product.effective_price * 0.7) | round(2) %}
+        <!-- Format picker — physical vs digital -->
+        <div class="format-toggle" id="formatToggle">
+            <div class="format-card selected" id="fmt-physical" onclick="selectFormat('physical')">
+                <span class="format-icon">📦</span>
+                <div class="format-title">Physical Copy</div>
+                <div class="format-price">JMD {{ "%.2f"|format(product.effective_price) }}</div>
+                <div class="format-sub">Delivered to your door</div>
+            </div>
+            <div class="format-card" id="fmt-digital" onclick="selectFormat('digital')">
+                <span class="format-icon">📱</span>
+                <div class="format-title">Digital Copy</div>
+                <div class="format-price">JMD {{ "%.2f"|format(digital_price) }}</div>
+                <span class="format-save">Save 30%</span>
+                <div class="format-sub">Instant download · PDF/ePub</div>
+            </div>
+        </div>
+
+        <!-- Digital perks — shown when digital is selected -->
+        <div class="digital-features" id="digitalFeatures">
+            <div class="digital-feat"><span>⚡</span> Instant delivery — read in seconds</div>
+            <div class="digital-feat"><span>📱</span> Read on phone, tablet or computer</div>
+            <div class="digital-feat"><span>♾️</span> Lifetime access — never expires</div>
+            <div class="digital-feat"><span>💰</span> 30% cheaper than the physical edition</div>
+        </div>
+        {% endif %}
+
         <div class="qty-row">
             <span class="qty-label">Quantity:</span>
             <div class="qty-control">
@@ -163,12 +262,31 @@
             </div>
         </div>
 
+        {% if product.category == 'books' %}
+        <button class="add-big-btn" id="addBtn"
+                onclick="addToCart({{ product.id }}, this)"
+                style="background: var(--purple);">
+            🛒 Add Physical Copy to Cart
+        </button>
+        <button class="add-big-btn" id="digitalBtn"
+                onclick="getDigitalCopy(this)"
+                style="display:none; background: #2563eb;">
+            ⚡ Get Digital Copy — JMD {{ "%.2f"|format(digital_price) }}
+        </button>
+        {% else %}
         <button class="add-big-btn" onclick="addToCart({{ product.id }}, this)">🛒 Add to Cart</button>
-        <a href="{{ url_for('shop') }}" style="display:block; text-align:center; color:var(--gray-600); font-size:0.88rem;">← Continue Shopping</a>
+        {% endif %}
+
+        <a href="{{ url_for('shop') }}" style="display:block; text-align:center; color:var(--gray-600); font-size:0.88rem; margin-top:10px;">← Continue Shopping</a>
 
         <div class="features">
+            {% if product.category == 'books' %}
+            <div class="feature-row"><span class="check">✓</span> Physical copies dispatched within 24hrs</div>
+            <div class="feature-row"><span class="check">✓</span> Digital copies delivered instantly by email</div>
+            {% else %}
             <div class="feature-row"><span class="check">✓</span> In stock &amp; ready to ship</div>
-            <div class="feature-row"><span class="check">✓</span> Free delivery on orders over JMD5,000</div>
+            {% endif %}
+            <div class="feature-row"><span class="check">✓</span> Free delivery on orders over JMD 5,000</div>
             <div class="feature-row"><span class="check">✓</span> 30-day hassle-free returns</div>
             <div class="feature-row"><span class="check">✓</span> Licensed pharmacy — quality guaranteed</div>
         </div>
@@ -195,6 +313,62 @@
 
 {% block extra_js %}
 <script>
+// ── Format toggle (books only) ──
+function selectFormat(type) {
+    const physCard    = document.getElementById('fmt-physical');
+    const digCard     = document.getElementById('fmt-digital');
+    const addBtn      = document.getElementById('addBtn');
+    const digBtn      = document.getElementById('digitalBtn');
+    const digFeatures = document.getElementById('digitalFeatures');
+    if (!physCard) return;
+
+    if (type === 'digital') {
+        physCard.classList.remove('selected');
+        digCard.classList.add('selected');
+        digFeatures.classList.add('visible');
+        addBtn.style.display = 'none';
+        digBtn.style.display = 'block';
+    } else {
+        digCard.classList.remove('selected');
+        physCard.classList.add('selected');
+        digFeatures.classList.remove('visible');
+        addBtn.style.display = 'block';
+        digBtn.style.display = 'none';
+    }
+}
+
+function getDigitalCopy(btn) {
+    btn.disabled = true;
+    btn.textContent = '⏳ Processing…';
+    // Simulate instant delivery — in production this would email a download link
+    setTimeout(() => {
+        btn.textContent = '✓ Digital Copy Added!';
+        btn.style.background = '#16a34a';
+        // Show a toast-style confirmation
+        const toast = document.createElement('div');
+        toast.style.cssText = `
+            position:fixed; bottom:28px; left:50%; transform:translateX(-50%);
+            background:#1e293b; color:white; padding:14px 24px; border-radius:30px;
+            font-size:0.88rem; font-weight:600; z-index:9999;
+            box-shadow:0 8px 30px rgba(0,0,0,0.3);
+            display:flex; align-items:center; gap:10px;
+        `;
+        toast.innerHTML = `<span style="font-size:1.2rem">📧</span>
+            <span>Digital copy confirmed! A download link will be emailed to you.</span>`;
+        document.body.appendChild(toast);
+        setTimeout(() => {
+            toast.style.transition = 'opacity 0.4s';
+            toast.style.opacity = '0';
+            setTimeout(() => toast.remove(), 400);
+        }, 4000);
+        setTimeout(() => {
+            btn.textContent = '⚡ Get Digital Copy';
+            btn.style.background = '#2563eb';
+            btn.disabled = false;
+        }, 3000);
+    }, 800);
+}
+
 function switchGallery(thumb, src) {
     const main = document.getElementById('galleryMain');
     main.style.opacity = '0';

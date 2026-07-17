@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Delivery Manual – PillBox Pharmacy</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --teal: #0d9488; --teal-light: #14b8a6; --teal-dark: #0f766e;
+            --bg: #0f172a; --sidebar: #1e293b; --card: #1e293b;
+            --border: #334155; --text: #f1f5f9; --muted: #94a3b8; --muted2: #64748b;
+        }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+        a { text-decoration: none; color: inherit; }
+
+        /* Top bar */
+        .top-bar {
+            background: var(--sidebar); border-bottom: 1px solid var(--border);
+            padding: 0 24px; height: 64px;
+            display: flex; align-items: center; justify-content: space-between;
+            position: sticky; top: 0; z-index: 100;
+        }
+        .top-bar-brand { display: flex; align-items: center; gap: 12px; }
+        .brand-icon {
+            width: 36px; height: 36px; background: var(--teal); border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1rem; font-weight: 800; color: white;
+        }
+        .brand-name { font-weight: 700; font-size: 1rem; }
+        .brand-sub  { font-size: 0.72rem; color: var(--muted); }
+        .top-bar-right { display: flex; align-items: center; gap: 14px; }
+        .btn-back {
+            padding: 7px 16px; background: rgba(255,255,255,0.06);
+            color: var(--muted); border: 1px solid var(--border);
+            border-radius: 8px; font-size: 0.82rem; font-weight: 600; font-family: inherit;
+            cursor: pointer; transition: background 0.15s;
+        }
+        .btn-back:hover { background: rgba(255,255,255,0.1); color: var(--text); }
+        .btn-logout {
+            padding: 7px 16px; background: rgba(220,38,38,0.12);
+            color: #f87171; border: 1px solid rgba(220,38,38,0.25);
+            border-radius: 8px; font-size: 0.82rem; font-weight: 600; font-family: inherit;
+            cursor: pointer;
+        }
+
+        /* Layout */
+        .page-wrap { max-width: 800px; margin: 0 auto; padding: 40px 24px; }
+
+        .page-header { margin-bottom: 36px; }
+        .page-header h1 { font-size: 1.7rem; font-weight: 800; color: var(--text); margin-bottom: 6px; }
+        .page-header p { font-size: 0.92rem; color: var(--muted); line-height: 1.6; }
+        .version-tag {
+            display: inline-block; margin-top: 10px;
+            background: rgba(13,148,136,0.15); color: var(--teal-light);
+            border-radius: 20px; padding: 3px 14px; font-size: 0.75rem; font-weight: 700;
+            border: 1px solid rgba(13,148,136,0.3);
+        }
+
+        /* TOC */
+        .toc {
+            background: var(--sidebar); border-radius: 12px;
+            padding: 20px 24px; margin-bottom: 32px;
+            border-left: 3px solid var(--teal);
+        }
+        .toc h3 { font-size: 0.78rem; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.07em; color: var(--muted); margin-bottom: 12px; }
+        .toc ol { padding-left: 16px; }
+        .toc li { margin-bottom: 7px; }
+        .toc a { font-size: 0.88rem; font-weight: 500; color: var(--teal-light); }
+        .toc a:hover { text-decoration: underline; }
+
+        /* Sections */
+        .section {
+            background: var(--sidebar); border-radius: 14px;
+            padding: 26px 28px; margin-bottom: 20px;
+            border: 1px solid var(--border);
+        }
+        .section-header {
+            display: flex; align-items: center; gap: 14px;
+            padding-bottom: 16px; margin-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+        .section-num {
+            width: 34px; height: 34px; border-radius: 50%;
+            background: var(--teal); color: white;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.9rem; font-weight: 800; flex-shrink: 0;
+        }
+        .section-header h2 { font-size: 1.05rem; font-weight: 700; color: var(--text); }
+        .section-header p { font-size: 0.8rem; color: var(--muted); margin-top: 2px; }
+
+        /* Steps */
+        .steps { display: flex; flex-direction: column; }
+        .step {
+            display: flex; gap: 14px; padding: 13px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .step:last-child { border-bottom: none; padding-bottom: 0; }
+        .step-arrow { font-size: 0.78rem; font-weight: 800; color: var(--teal); flex-shrink: 0; padding-top: 2px; min-width: 20px; }
+        .step-title { font-size: 0.9rem; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+        .step-desc { font-size: 0.83rem; color: var(--muted); line-height: 1.65; }
+
+        /* Key / path badges */
+        .key {
+            display: inline-block; background: rgba(255,255,255,0.08);
+            border: 1px solid var(--border); border-radius: 4px;
+            padding: 1px 8px; font-size: 0.76rem; font-weight: 600;
+            color: var(--text); font-family: monospace;
+        }
+        .path {
+            display: inline-block; background: rgba(13,148,136,0.15);
+            border: 1px solid rgba(13,148,136,0.3);
+            border-radius: 4px; padding: 1px 8px;
+            font-size: 0.76rem; color: var(--teal-light); font-family: monospace;
+        }
+
+        /* Note / warning */
+        .note {
+            background: rgba(13,148,136,0.1); border-left: 3px solid var(--teal);
+            border-radius: 0 8px 8px 0; padding: 12px 16px;
+            margin-top: 16px; font-size: 0.82rem; color: var(--teal-light); line-height: 1.6;
+        }
+        .warning {
+            background: rgba(239,68,68,0.1); border-left: 3px solid #ef4444;
+            border-radius: 0 8px 8px 0; padding: 12px 16px;
+            margin-top: 16px; font-size: 0.82rem; color: #fca5a5; line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+
+<div class="top-bar">
+    <div class="top-bar-brand">
+        <div class="brand-icon">P</div>
+        <div>
+            <div class="brand-name">PillBox Delivery Portal</div>
+            <div class="brand-sub">Driver Manual</div>
+        </div>
+    </div>
+    <div class="top-bar-right">
+        <a href="{{ url_for('delivery_dashboard') }}" class="btn-back">← Back to Dashboard</a>
+        <a href="{{ url_for('delivery_logout') }}" class="btn-logout">Logout</a>
+    </div>
+</div>
+
+<div class="page-wrap">
+
+    <div class="page-header">
+        <h1>Delivery Driver Manual</h1>
+        <p>Everything you need to know to complete deliveries using the PillBox Pharmacy delivery portal. Read this before your first delivery.</p>
+        <span class="version-tag">Version 1.0 — PillBox Pharmacy</span>
+    </div>
+
+    <!-- TOC -->
+    <div class="toc">
+        <h3>Contents</h3>
+        <ol>
+            <li><a href="#login">Logging In</a></li>
+            <li><a href="#dashboard">Your Dashboard</a></li>
+            <li><a href="#claiming">Claiming an Order</a></li>
+            <li><a href="#verifying">Verifying a Delivery</a></li>
+            <li><a href="#codes">Customer Confirmation Codes</a></li>
+            <li><a href="#rules">Rules & Conduct</a></li>
+        </ol>
+    </div>
+
+    <!-- 1. Login -->
+    <div class="section" id="login">
+        <div class="section-header">
+            <div class="section-num">1</div>
+            <div>
+                <h2>Logging In</h2>
+                <p>How to access your delivery portal.</p>
+            </div>
+        </div>
+        <div class="steps">
+            <div class="step">
+                <div class="step-arrow">-&gt;</div>
+                <div>
+                    <div class="step-title">Access the portal</div>
+                    <div class="step-desc">Open your browser and go to <span class="path">/delivery/login</span>. This is your dedicated portal — it is separate from the customer store and the admin panel.</div>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-arrow">-&gt;</div>
+                <div>
+                    <div class="step-title">Enter your credentials</div>
+                    <div class="step-desc">Type the username and password that was set up for you by the admin. If you do not have credentials or cannot log in, contact your manager to have your account created or reset.</div>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-arrow">-&gt;</div>
+                <div>
+                    <div class="step-title">After logging in</div>
+                    <div class="step-desc">You will be taken directly to your delivery dashboard. Your name will appear in the top right corner of the screen confirming you are logged in.</div>
+                </div>
+            </div>
+        </div>
+        <div class="note">
+            <strong>Note:</strong> Always log out when you are done by clicking the Logout button in the top right corner. Do not share your login credentials with anyone.
+        </div>
+    </div>
+
+    <!-- 2. Dashboard -->
+    <div class="section" id="dashboard">
+        <div class="section-header">
+            <div class="section-num">2</div>
+            <div>
+                <h2>Your Dashboard</h2>
+                <p>Understanding what you see when you log in.</p>
+            </div>
+        </div>
+        <div class="steps">
+            <div class="step">
+                <div class="step-arrow">-&gt;</div>
+                <div>
+                    <div class="step-title">Order cards</div>
+                    <div class="step-desc">Your dashboard shows a grid of order cards. Each card displays the order ID, customer full name, delivery address, parish, number of items in the order, and the order total in JMD.</div>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-arrow">-&gt;</div>
+                <div>
+                    <div class="step-title">Order statuses</div>
+                    <div class="step-desc">Each card shows a status badge. <span class="key">Processing</span> means the order is ready and waiting for a driver to claim it. <span class="key">Out for Delivery</span> means a driver has already claimed it. Only delivery-type orders appear here — pickup orders are handled in store.</div>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-arrow">-&gt;</div>
+                <div>
+                    <div class="step-title">Unclaimed vs claimed</div>
+                    <div class="step-desc">Unclaimed orders show a <strong>Claim Order</strong> button. Orders claimed by you show a <strong>Verify Delivery</strong> button. Orders claimed by another driver show an "Assigned to another driver" message — do not attempt to deliver those orders.</div>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-arrow">-&gt;</div>
+                <div>
+                    <div class="step-title">Refreshing the dashboard</div>
+                    <div class="step-desc">The dashboard does not auto-refresh. If you have been waiting and want to check for new orders, reload the page manually in your browser.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Claiming -->
+    <div class="section" id="claiming">
+        <div class="section-header">
+            <div class="section-num">3</div>
+            <div>
+                <h2>Claiming an Order</h2>
+                <p>How to assign an order to yourself before going out.</p>
+            </div>
+        </div>
+        <div class="steps">
+            <div class="step">
+                <div class="step-arrow">-&gt;</div>
+                <div>
+                    <div class="step-title">Step 1 — Find an unclaimed order</div>
+                    <div class="step-desc">On your dashboard, locate an order card that shows the <strong>Claim Order</strong> button. Review the delivery address and parish before claiming to make sure you can reach that location.</div>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-arrow">-&gt;</div>
+                <div>
+                    <div class="step-title">Step 2 — Click Claim Order</div>
+                    <div class="step-desc">Click the <strong>Claim Order</strong> button on the card. The order status changes to <span class="key">Out for Delivery</span> and the card now shows a <strong>Verify Delivery</strong> button. The order is now assigned to you.</div>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-arrow">-&gt;</div>
+                <div>
+                    <div class="step-title">Step 3 — Note the delivery details</div>
+                    <div class="step-desc">Before leaving, write down or screenshot the customer name, full address, and parish. The customer's confirmation code is blurred until you claim the order — once claimed it will be visible on the card so you know what to expect from the customer.</div>
+                </div>
+            </div>
+        </div>
+        <div class="warning">
+            <strong>Important:</strong> Only claim an order if you are certain you can complete that delivery. Once claimed, the order is assigned to you and removed from the available pool for other drivers.
+        </div>
+    </div>
+
+    <!-- 4. Verifying -->
+    <div class="section" id="verifying">
+        <div class="section-header">
+            <div class="section-num">4</div>
+            <div>
+                <h2>Verifying a Delivery</h2>
+                <p>How to confirm a delivery was completed after handing over the order.</p>
+            </div>
+        </div>
+        <div class="steps">
+            <div class="step">
+                <div class="step-arrow">-&gt;</div>
+                <div>
+                    <div class="step-title">Step 1 — Deliver the order to the customer</div>
+                    <div class="step-desc">Bring the package to the address shown on the order card. Confirm the customer's name before handing anything over.</div>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-arrow">-&gt;</div>
+                <div>
+                    <div class="step-title">Step 2 — Ask for the confirmation code</div>
+                    <div class="step-desc">Ask the customer for their 6-character confirmation code. This code was shown to them on their order confirmation screen after they placed the order. It looks like <span class="key">PB4821</span>. Do not hand over the order until you have verified the code.</div>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-arrow">-&gt;</div>
+                <div>
+                    <div class="step-title">Step 3 — Click Verify Delivery</div>
+                    <div class="step-desc">On your dashboard, click the <strong>Verify Delivery</strong> button on the order card. A verification screen will open showing the order details.</div>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-arrow">-&gt;</div>
+                <div>
+                    <div class="step-title">Step 4 — Enter the code</div>
+                    <div class="step-desc">Type the 6-character code the customer gave you into the large input box on the verification screen. The code is not case sensitive. Click <strong>Verify and Mark Delivered</strong>.</div>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-arrow">-&gt;</div>
+                <div>
+                    <div class="step-title">Step 5 — Confirmation</div>
+                    <div class="step-desc">If the code is correct, a green confirmation screen appears saying "Delivery Confirmed." The order status is updated to <span class="key">Delivered</span> and the admin can see the completed delivery. If the code is wrong, a red error message appears — ask the customer to check their confirmation screen again.</div>
+                </div>
+            </div>
+        </div>
+        <div class="warning">
+            <strong>Important:</strong> Never mark an order as delivered without getting the correct code from the customer. This protects both the customer and you in case of any dispute.
+        </div>
+    </div>
+
+    <!-- 5. Codes -->
+    <div class="section" id="codes">
+        <div class="section-header">
+            <div class="section-num">5</div>
+            <div>
+                <h2>Customer Confirmation Codes</h2>
+                <p>What they are and what to do if there is a problem.</p>
+            </div>
+        </div>
+        <div class="steps">
+            <div class="step">
+                <div class="step-arrow">-&gt;</div>
+                <div>
+                    <div class="step-title">What is the code</div>
+                    <div class="step-desc">Every order generates a unique 6-character code that starts with PB followed by 4 digits, for example <span class="key">PB7302</span>. The code is shown to the customer immediately after they complete their order online.</div>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-arrow">-&gt;</div>
+                <div>
+                    <div class="step-title">What if the customer does not have the code</div>
+                    <div class="step-desc">If the customer says they did not receive or cannot find their code, do not leave the package. Ask them to check their order confirmation screen in their browser history, or contact the pharmacy directly. Do not hand over an order without a verified code.</div>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-arrow">-&gt;</div>
+                <div>
+                    <div class="step-title">What if the code keeps failing</div>
+                    <div class="step-desc">If you have confirmed the code with the customer and it still shows as incorrect, bring the order back to the pharmacy and report it to your manager. The admin can view the correct code on the Orders page.</div>
+                </div>
+            </div>
+        </div>
+        <div class="note">
+            <strong>Reminder:</strong> The code on the order card on your dashboard is the correct code for that order. If what the customer gives you does not match, the verification will fail.
+        </div>
+    </div>
+
+    <!-- 6. Rules -->
+    <div class="section" id="rules">
+        <div class="section-header">
+            <div class="section-num">6</div>
+            <div>
+                <h2>Rules & Conduct</h2>
+                <p>Standards expected of all PillBox delivery staff.</p>
+            </div>
+        </div>
+        <div class="steps">
+            <div class="step">
+                <div class="step-arrow">-&gt;</div>
+                <div>
+                    <div class="step-title">Accuracy</div>
+                    <div class="step-desc">Always verify the customer name and confirmation code before handing over any order. Delivering to the wrong person or address is a serious error.</div>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-arrow">-&gt;</div>
+                <div>
+                    <div class="step-title">Professionalism</div>
+                    <div class="step-desc">Represent the PillBox Pharmacy brand at every delivery. Be polite, punctual, and presentable. Any issues with a customer should be reported to your manager, not handled personally.</div>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-arrow">-&gt;</div>
+                <div>
+                    <div class="step-title">Package integrity</div>
+                    <div class="step-desc">Deliver all orders in the condition they were packed. If packaging is damaged before you leave or during transit, report it to the pharmacy before completing the delivery.</div>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-arrow">-&gt;</div>
+                <div>
+                    <div class="step-title">System use</div>
+                    <div class="step-desc">Only claim orders you intend to deliver. Mark deliveries as completed promptly using the verification system. Do not attempt to access the admin panel — your account only has delivery portal access.</div>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-arrow">-&gt;</div>
+                <div>
+                    <div class="step-title">End of shift</div>
+                    <div class="step-desc">At the end of your shift, make sure all your claimed orders are either verified as delivered or returned to the pharmacy with a reason. Log out of the portal before closing your browser.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+</body>
+</html>
