@@ -5,5 +5,8 @@ __pycache__/
 *.pyo
 .env
 .env.*
+!.env.example
 .DS_Store
 instance/
+*.db
+pillbox.db

@@ -1,15 +1,34 @@
-import json
 import os
+from dotenv import load_dotenv
+load_dotenv()  # read .env into environment (for MAIL_* settings, etc.)
 import uuid
 import random
 import string
+import secrets
 import datetime
 from functools import wraps
 from werkzeug.utils import secure_filename
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
+import emails
+import db
+import payments
 
 app = Flask(__name__)
-app.secret_key = "pillbox_secret_2024"
+# Use the SECRET_KEY env var in production (Render sets one); fall back for local dev.
+app.secret_key = os.environ.get("SECRET_KEY", "pillbox_secret_2024")
+
+# Public base URL for building absolute links in emails (e.g. staff invites).
+# On Render, set this to https://pillbox-pharmacy.onrender.com so links aren't "localhost".
+PUBLIC_BASE_URL = os.environ.get("PUBLIC_BASE_URL", "").rstrip("/")
+
+
+def external_url(endpoint, **values):
+    """Build an absolute URL, forcing the public domain when PUBLIC_BASE_URL is set."""
+    if PUBLIC_BASE_URL:
+        return PUBLIC_BASE_URL + url_for(endpoint, **values)
+    return url_for(endpoint, _external=True, **values)
+
+
 UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), "static", "uploads")
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
@@ -37,11 +56,6 @@ APPOINTMENT_REASONS = [
     "Other",
 ]
 
-# Seed appointments.json
-if not os.path.exists(APPOINTMENTS_FILE):
-    with open(APPOINTMENTS_FILE, "w") as _f:
-        json.dump([], _f)
-
 CATEGORIES = {
     "all": "All Products",
     "pharmacy": "Pharmacy & Health",
@@ -59,27 +73,19 @@ DEFAULT_STAFF = [
     {"id": "s2", "name": "Marcus Reid", "username": "marcus", "password": "deliver123", "role": "delivery"},
 ]
 
-# Seed staff.json
-if not os.path.exists(STAFF_FILE):
-    with open(STAFF_FILE, "w") as _f:
-        json.dump(DEFAULT_STAFF, _f, indent=2)
-
-# Seed orders.json
-if not os.path.exists(ORDERS_FILE):
-    with open(ORDERS_FILE, "w") as _f:
-        json.dump([], _f, indent=2)
+# Initialise the database and import any existing JSON data (one-time, safe to
+# re-run — it won't overwrite tables that already have data).
+db.migrate_from_json(os.path.dirname(__file__), default_staff=DEFAULT_STAFF)
 
 
 # ── Product persistence ──────────────────────────────────────────────────────
 
 def load_products():
-    with open(PRODUCTS_FILE, "r") as f:
-        return json.load(f)
+    return db.read_list("products")
 
 
 def save_products(products):
-    with open(PRODUCTS_FILE, "w") as f:
-        json.dump(products, f, indent=2)
+    db.write_list("products", products)
 
 
 def get_products():
@@ -102,43 +108,32 @@ def next_id(lst):
 # ── Orders persistence ───────────────────────────────────────────────────────
 
 def load_orders():
-    if not os.path.exists(ORDERS_FILE):
-        return []
-    with open(ORDERS_FILE) as f:
-        return json.load(f)
+    return db.read_list("orders")
 
 
 def save_orders(orders):
-    with open(ORDERS_FILE, "w") as f:
-        json.dump(orders, f, indent=2)
+    db.write_list("orders", orders)
 
 
 # ── Users persistence ────────────────────────────────────────────────────────
 
 def load_users():
-    if not os.path.exists(USERS_FILE):
-        return {}
-    with open(USERS_FILE) as f:
-        return json.load(f)
+    return db.read_users()
 
 
 def save_users(users):
-    with open(USERS_FILE, "w") as f:
-        json.dump(users, f, indent=2)
+    db.write_users(users)
 
 
 # ── Staff persistence ────────────────────────────────────────────────────────
 
 def load_staff():
-    if not os.path.exists(STAFF_FILE):
-        return DEFAULT_STAFF[:]
-    with open(STAFF_FILE) as f:
-        return json.load(f)
+    staff = db.read_list("staff")
+    return staff if staff else DEFAULT_STAFF[:]
 
 
 def save_staff(staff):
-    with open(STAFF_FILE, "w") as f:
-        json.dump(staff, f, indent=2)
+    db.write_list("staff", staff)
 
 
 # ── Misc helpers ─────────────────────────────────────────────────────────────
@@ -160,24 +155,16 @@ def cart_total():
 
 
 def load_appointments():
-    if not os.path.exists(APPOINTMENTS_FILE):
-        return []
-    with open(APPOINTMENTS_FILE) as f:
-        return json.load(f)
+    return db.read_list("appointments")
 
 def save_appointments(appts):
-    with open(APPOINTMENTS_FILE, "w") as f:
-        json.dump(appts, f, indent=2)
+    db.write_list("appointments", appts)
 
 def load_ads():
-    if not os.path.exists(ADS_FILE):
-        return []
-    with open(ADS_FILE) as f:
-        return json.load(f)
+    return db.read_list("ads")
 
 def save_ads(ads):
-    with open(ADS_FILE, "w") as f:
-        json.dump(ads, f, indent=2)
+    db.write_list("ads", ads)
 
 def get_active_ads():
     """Return up to 3 ads whose expiry hasn't passed, with full product data attached."""
@@ -559,6 +546,9 @@ def checkout():
         tax      = round(subtotal * 0.15, 2)
         total    = round(subtotal * 1.15 + shipping, 2)
 
+        payment_method = request.form.get("payment_method", "cash")
+        pay_by_card = payment_method == "card" and payments.is_configured()
+
         order = {
             "id":                  "ORD-" + "".join(random.choices(string.digits, k=4)),
             "customer_name":       first_name + " " + last_name,
@@ -572,7 +562,10 @@ def checkout():
             "fulfillment":         fulfillment,
             "address":             address if fulfillment == "delivery" else "In-Store Pickup",
             "parish":              parish,
-            "status":              "processing",
+            # Card orders start unpaid until Stripe confirms; cash orders go straight to processing.
+            "status":              "pending_payment" if pay_by_card else "processing",
+            "payment_method":      "card" if pay_by_card else "cash",
+            "payment_status":      "unpaid" if pay_by_card else "not_required",
             "pickup_code":         gen_code(),
             "delivery_worker_id":  None,
             "created_at":          datetime.datetime.now().isoformat(),
@@ -584,6 +577,23 @@ def checkout():
         orders.append(order)
         save_orders(orders)
 
+        if pay_by_card:
+            # Redirect to Stripe's hosted payment page. Cart stays until payment
+            # succeeds so an abandoned payment doesn't lose the customer's basket.
+            session["pending_order_id"] = order["id"]
+            success_url = external_url("checkout_success") + "?session_id={CHECKOUT_SESSION_ID}"
+            cancel_url = external_url("checkout_cancel")
+            pay_url = payments.create_checkout_session(order, success_url, cancel_url)
+            if pay_url:
+                return redirect(pay_url)
+            # Stripe failed — fall back to placing the order as unpaid so nothing is lost
+            flash("Card payment is temporarily unavailable. Your order was placed — please pay on collection.", "error")
+            order["status"] = "processing"
+            order["payment_status"] = "not_required"
+            save_orders(orders)
+
+        # Cash / fallback path — confirm immediately
+        emails.send_order_confirmation(order)
         session["cart"] = {}
         session["last_order_id"] = order["id"]
         flash("Order placed successfully! Thank you for shopping at The PillBox Pharmacy.", "success")
@@ -591,7 +601,48 @@ def checkout():
 
     total = round(cart_total(), 2)
     cart_items = list(get_cart().values())
-    return render_template("checkout.html", cart_items=cart_items, total=total)
+    return render_template("checkout.html", cart_items=cart_items, total=total,
+                           stripe_enabled=payments.is_configured())
+
+
+@app.route("/checkout/success")
+def checkout_success():
+    """Return URL after a successful Stripe payment. Verify, mark paid, confirm."""
+    session_id = request.args.get("session_id", "")
+    order_id = session.get("pending_order_id")
+    orders = load_orders()
+    order = next((o for o in orders if o["id"] == order_id), None)
+
+    stripe_session = payments.retrieve_session(session_id)
+    paid = stripe_session and stripe_session.get("payment_status") == "paid"
+
+    if order and paid:
+        order["status"] = "processing"
+        order["payment_status"] = "paid"
+        order["stripe_session_id"] = session_id
+        save_orders(orders)
+        emails.send_order_confirmation(order)
+        session["cart"] = {}
+        session.pop("pending_order_id", None)
+        session["last_order_id"] = order["id"]
+        flash("Payment successful! Thank you for shopping at The PillBox Pharmacy.", "success")
+        return redirect(url_for("order_confirmation"))
+
+    flash("We couldn't confirm your payment. If you were charged, please contact us.", "error")
+    return redirect(url_for("cart"))
+
+
+@app.route("/checkout/cancel")
+def checkout_cancel():
+    """Return URL if the customer backs out of the Stripe payment page."""
+    order_id = session.pop("pending_order_id", None)
+    if order_id:
+        # Drop the unpaid pending order so it doesn't clutter the admin.
+        orders = load_orders()
+        orders = [o for o in orders if not (o["id"] == order_id and o.get("payment_status") == "unpaid")]
+        save_orders(orders)
+    flash("Payment cancelled — your cart is still here whenever you're ready.", "error")
+    return redirect(url_for("cart"))
 
 
 @app.route("/order-confirmation")
@@ -688,7 +739,8 @@ def admin_login():
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "").strip()
         staff = load_staff()
-        admin = next((s for s in staff if s["username"] == username and s["password"] == password and s["role"] == "admin"), None)
+        admin = next((s for s in staff if s["username"] == username and s.get("password") == password
+                      and password and s["role"] == "admin" and s.get("status", "active") == "active"), None)
         # Fallback: also check legacy hardcoded credentials
         if admin or (username == "admin" and password == "pillbox"):
             session["is_admin"] = True
@@ -854,10 +906,14 @@ def admin_update_order_status(order_id):
     if not order:
         return jsonify({"success": False, "message": "Order not found"}), 404
     new_status = request.form.get("status", "").strip()
+    old_status = order["status"]
     order["status"] = new_status
     if new_status == "delivered" and not order.get("delivered_at"):
         order["delivered_at"] = datetime.datetime.now().isoformat()
     save_orders(orders)
+    # Notify the customer when the status actually changes
+    if new_status != old_status:
+        emails.send_order_status(order)
     return jsonify({"success": True, "status": new_status})
 
 
@@ -931,17 +987,75 @@ def admin_staff():
 @admin_required
 def admin_add_staff():
     staff = load_staff()
+    name     = request.form.get("name", "").strip()
+    username = request.form.get("username", "").strip()
+    email    = request.form.get("email", "").strip().lower()
+    role     = request.form.get("role", "delivery")
+
+    if not name or not username or not email:
+        flash("Name, username and email are all required.", "error")
+        return redirect(url_for("admin_staff"))
+
+    if any(s.get("username") == username for s in staff):
+        flash(f'Username "{username}" is already taken.', "error")
+        return redirect(url_for("admin_staff"))
+
+    # Create the member in "invited" state — no password until they accept.
+    token = secrets.token_urlsafe(32)
     new_member = {
-        "id":       str(uuid.uuid4()),
-        "name":     request.form.get("name", "").strip(),
-        "username": request.form.get("username", "").strip(),
-        "password": request.form.get("password", "").strip(),
-        "role":     request.form.get("role", "delivery"),
+        "id":           str(uuid.uuid4()),
+        "name":         name,
+        "username":     username,
+        "email":        email,
+        "password":     "",            # set by the invitee when they accept
+        "role":         role,
+        "status":       "invited",     # invited → active
+        "invite_token": token,
+        "created_at":   datetime.datetime.now().isoformat(),
     }
     staff.append(new_member)
     save_staff(staff)
-    flash(f'Staff member "{new_member["name"]}" added.', "success")
+
+    accept_url = external_url("staff_accept_invite", token=token)
+    sent = emails.send_staff_invite(new_member, accept_url)
+
+    if sent:
+        flash(f'Invitation sent to {email}. {name} can now accept and set a password.', "success")
+    else:
+        # Email not configured / failed — still show the admin the link so onboarding isn't blocked.
+        flash(f'{name} added, but the invite email could not be sent. '
+              f'Share this link manually: {accept_url}', "error")
     return redirect(url_for("admin_staff"))
+
+
+@app.route("/invite/<token>", methods=["GET", "POST"])
+def staff_accept_invite(token):
+    staff  = load_staff()
+    member = next((s for s in staff if s.get("invite_token") == token), None)
+
+    if not member:
+        flash("This invitation link is invalid or has already been used.", "error")
+        return redirect(url_for("index"))
+
+    if request.method == "POST":
+        pw      = request.form.get("password", "").strip()
+        confirm = request.form.get("confirm", "").strip()
+        if len(pw) < 6:
+            flash("Password must be at least 6 characters.", "error")
+            return render_template("auth/accept_invite.html", member=member, token=token)
+        if pw != confirm:
+            flash("Passwords do not match.", "error")
+            return render_template("auth/accept_invite.html", member=member, token=token)
+
+        member["password"]     = pw
+        member["status"]       = "active"
+        member["invite_token"] = None   # single-use — burn the token
+        save_staff(staff)
+        flash("Your account is active! You can now log in.", "success")
+        login_url = url_for("admin_login") if member["role"] == "admin" else url_for("delivery_login")
+        return redirect(login_url)
+
+    return render_template("auth/accept_invite.html", member=member, token=token)
 
 
 @app.route("/book-appointment", methods=["POST"])
@@ -978,6 +1092,10 @@ def book_appointment():
     appts = load_appointments()
     appts.append(appt)
     save_appointments(appts)
+
+    # Send confirmation email if the customer gave one
+    emails.send_appointment_confirmation(appt)
+
     return jsonify({"success": True, "id": appt["id"],
                     "message": f"Appointment booked for {date} at {time}. Your reference is {appt['id']}."})
 
@@ -1001,10 +1119,16 @@ def admin_update_appointment(appt_id):
     appt  = next((a for a in appts if a["id"] == appt_id), None)
     if not appt:
         return jsonify({"success": False, "message": "Appointment not found"}), 404
+    old_status = appt["status"]
     appt["status"]     = request.form.get("status", appt["status"])
     appt["feedback"]   = request.form.get("feedback", appt.get("feedback", ""))
     appt["updated_at"] = datetime.datetime.now().isoformat()
     save_appointments(appts)
+
+    # Notify the customer when the status actually changes
+    if appt["status"] != old_status:
+        emails.send_appointment_status(appt)
+
     return jsonify({"success": True, "status": appt["status"]})
 
 
@@ -1107,7 +1231,8 @@ def delivery_login():
         password = request.form.get("password", "").strip()
         staff = load_staff()
         worker = next(
-            (s for s in staff if s["username"] == username and s["password"] == password and s["role"] == "delivery"),
+            (s for s in staff if s["username"] == username and s.get("password") == password
+             and password and s["role"] == "delivery" and s.get("status", "active") == "active"),
             None,
         )
         if worker:
@@ -1168,6 +1293,7 @@ def delivery_claim(order_id):
     order["status"]             = "out_for_delivery"
     order["delivery_worker_id"] = session.get("delivery_worker_id")
     save_orders(orders)
+    emails.send_order_status(order)
     return jsonify({"success": True})
 
 
@@ -1188,6 +1314,7 @@ def delivery_verify(order_id):
             order["status"]       = "delivered"
             order["delivered_at"] = datetime.datetime.now().isoformat()
             save_orders(orders)
+            emails.send_order_status(order)
             return jsonify({"success": True, "message": "Delivery confirmed!"})
         return jsonify({"success": False, "message": "Incorrect code. Please try again."})
 
@@ -1195,4 +1322,4 @@ def delivery_verify(order_id):
 
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    app.run(debug=True, port=5001)

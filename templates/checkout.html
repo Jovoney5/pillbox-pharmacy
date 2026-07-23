@@ -242,25 +242,28 @@
                 <span class="pay-icon">NCB</span>
                 <span class="pay-icon">SCOTIABANK</span>
             </div>
-            <div class="form-row">
-                <div class="form-group full">
-                    <label>Card Number</label>
-                    <input type="text" placeholder="1234 5678 9012 3456" maxlength="19" required>
+
+            <input type="hidden" name="payment_method" id="paymentMethodInput" value="{{ 'card' if stripe_enabled else 'cash' }}">
+
+            <div class="fulfillment-picker" style="margin-bottom:8px;">
+                {% if stripe_enabled %}
+                <div class="fulfillment-card selected" id="pm-card" onclick="selectPayment('card')">
+                    <span class="fc-icon">💳</span>
+                    <div class="fc-title">Pay with Card</div>
+                    <div class="fc-sub">Secure card payment</div>
+                    <div class="fc-check">✓</div>
                 </div>
-                <div class="form-group full">
-                    <label>Cardholder Name</label>
-                    <input type="text" placeholder="Jane Brown" required>
-                </div>
-                <div class="form-group">
-                    <label>Expiry Date</label>
-                    <input type="text" placeholder="MM / YY" maxlength="7" required>
-                </div>
-                <div class="form-group">
-                    <label>CVV</label>
-                    <input type="text" placeholder="123" maxlength="4" required>
+                {% endif %}
+                <div class="fulfillment-card {{ '' if stripe_enabled else 'selected' }}" id="pm-cash" onclick="selectPayment('cash')">
+                    <span class="fc-icon">💵</span>
+                    <div class="fc-title">Cash</div>
+                    <div class="fc-sub">Pay on delivery / pickup</div>
+                    <div class="fc-check">✓</div>
                 </div>
             </div>
-            <p style="font-size:0.78rem; color:var(--gray-600);">🔒 Your payment info is encrypted and secure.</p>
+            {% if stripe_enabled %}
+            <p style="font-size:0.78rem; color:var(--gray-600);">🔒 Card payments are processed securely by Stripe. You'll enter your card on Stripe's page.</p>
+            {% endif %}
         </div>
     </div>
 
@@ -285,7 +288,9 @@
             <span>Total</span>
             <span>JMD{{ "%.2f"|format(total + (0 if total >= 5000 else 500) + total * 0.15) }}</span>
         </div>
-        <button type="submit" class="place-order-btn">✓ Place Order</button>
+        <button type="submit" class="place-order-btn" id="placeOrderBtn">
+            {{ '💳 Pay with Card' if stripe_enabled else '✓ Place Order' }}
+        </button>
     </div>
 </div>
 </form>
@@ -313,5 +318,15 @@ function selectFulfillment(type) {
 }
 // Init
 selectFulfillment('delivery');
+
+function selectPayment(method) {
+    document.getElementById('paymentMethodInput').value = method;
+    const cardEl = document.getElementById('pm-card');
+    const cashEl = document.getElementById('pm-cash');
+    if (cardEl) cardEl.classList.toggle('selected', method === 'card');
+    if (cashEl) cashEl.classList.toggle('selected', method === 'cash');
+    const btn = document.getElementById('placeOrderBtn');
+    if (btn) btn.textContent = method === 'card' ? '💳 Pay with Card' : '✓ Place Order';
+}
 </script>
 {% endblock %}

@@ -10,6 +10,27 @@ services:
         value: "3.11.0"
       - key: SECRET_KEY
         generateValue: true
+      # Public site URL — makes email links use the real domain, not localhost.
+      - key: PUBLIC_BASE_URL
+        value: "https://pillbox-pharmacy.onrender.com"
+      # Email (Gmail SMTP). Secret values are set in the Render dashboard, NOT here.
+      - key: MAIL_ENABLED
+        value: "true"
+      - key: MAIL_FROM_NAME
+        value: "The PillBox Pharmacy"
+      - key: MAIL_USERNAME
+        sync: false
+      - key: MAIL_PASSWORD
+        sync: false
+      - key: MAIL_REPLY_TO
+        sync: false
+      # Stripe (test keys for demo). Set the actual values in the Render dashboard.
+      - key: CURRENCY
+        value: "usd"
+      - key: STRIPE_PUBLISHABLE_KEY
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
     disk:
       name: pillbox-data
       mountPath: /opt/render/project/src

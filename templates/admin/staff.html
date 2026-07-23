@@ -78,6 +78,13 @@
         .role-admin    { background: var(--purple); }
         .role-delivery { background: #2563EB; }
 
+        .status-badge {
+            display: inline-block; padding: 3px 10px;
+            border-radius: 20px; font-size: 0.72rem; font-weight: 700;
+        }
+        .status-active  { background: #dcfce7; color: var(--green); }
+        .status-invited { background: #fef3c7; color: #b45309; }
+
         .btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 7px; font-weight: 600; font-size: 0.82rem; cursor: pointer; border: none; transition: all 0.18s; font-family: inherit; }
         .btn-primary { background: var(--purple); color: white; }
         .btn-primary:hover { background: var(--purple-light); }
@@ -175,6 +182,7 @@
                         <th>Name</th>
                         <th>Username</th>
                         <th>Role</th>
+                        <th>Status</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -189,6 +197,14 @@
                         </span>
                     </td>
                     <td>
+                        {% set st = member.get('status', 'active') %}
+                        {% if st == 'invited' %}
+                            <span class="status-badge status-invited">Invite pending</span>
+                        {% else %}
+                            <span class="status-badge status-active">Active</span>
+                        {% endif %}
+                    </td>
+                    <td>
                         <form method="POST" action="{{ url_for('admin_delete_staff', staff_id=member.id) }}" style="display:inline;"
                               onsubmit="return confirm('Remove {{ member.name }} from staff? This cannot be undone.')">
                             <button type="submit" class="btn btn-danger">Delete</button>
@@ -196,15 +212,19 @@
                     </td>
                 </tr>
                 {% else %}
-                <tr><td colspan="4" style="text-align:center;color:var(--gray-600);padding:32px;">No staff members found.</td></tr>
+                <tr><td colspan="5" style="text-align:center;color:var(--gray-600);padding:32px;">No staff members found.</td></tr>
                 {% endfor %}
                 </tbody>
             </table>
         </div>
 
-        <!-- Add Staff Form -->
+        <!-- Invite Staff Form -->
         <div class="form-card">
-            <h2>👤 Add Staff Member</h2>
+            <h2>✉️ Invite Staff Member</h2>
+            <p style="color:var(--gray-600);font-size:0.85rem;margin:-8px 0 20px;">
+                They'll receive an email with a link to accept and set their own password.
+                They can't sign in until they accept.
+            </p>
             <form method="POST" action="{{ url_for('admin_add_staff') }}">
                 <div class="form-grid">
                     <div class="form-group">
@@ -216,8 +236,8 @@
                         <input type="text" name="username" placeholder="e.g. marcus" required>
                     </div>
                     <div class="form-group">
-                        <label>Password</label>
-                        <input type="password" name="password" placeholder="Set a secure password" required>
+                        <label>Email Address</label>
+                        <input type="email" name="email" placeholder="e.g. marcus@example.com" required>
                     </div>
                     <div class="form-group">
                         <label>Role</label>
@@ -228,7 +248,7 @@
                     </div>
                 </div>
                 <div class="form-submit-row">
-                    <button type="submit" class="btn btn-primary">👤 Add Staff Member</button>
+                    <button type="submit" class="btn btn-primary">✉️ Send Invitation</button>
                 </div>
             </form>
         </div>

@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Accept Invitation – The PillBox Pharmacy{% endblock %}
+
+{% block extra_css %}
+<style>
+    .auth-wrap { max-width: 440px; margin: 40px auto; }
+    .auth-card { background: white; border-radius: 18px; box-shadow: var(--shadow-lg); overflow: hidden; }
+    .auth-header {
+        background: linear-gradient(135deg, var(--purple-deep), var(--purple-light));
+        padding: 32px 36px 28px; text-align: center; color: white;
+    }
+    .auth-header h2 { font-size: 1.6rem; font-weight: 800; margin-bottom: 6px; }
+    .auth-header p { font-size: 0.9rem; opacity: 0.9; }
+    .auth-body { padding: 32px 36px; }
+    .invite-summary {
+        background: var(--purple-pale); border-radius: 10px; padding: 14px 16px;
+        margin-bottom: 22px; font-size: 0.88rem; color: var(--purple-dark);
+    }
+    .invite-summary strong { color: var(--purple-dark); }
+    .form-group { margin-bottom: 18px; }
+    label { display: block; font-size: 0.82rem; font-weight: 700; color: var(--gray-700); margin-bottom: 7px; text-transform: uppercase; letter-spacing: 0.04em; }
+    .field-wrap { position: relative; }
+    .field-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); font-size: 1rem; pointer-events: none; }
+    input[type=password] {
+        width: 100%; padding: 11px 14px 11px 40px;
+        border: 1.5px solid var(--gray-200); border-radius: 10px;
+        font-size: 0.95rem; outline: none; font-family: inherit;
+        transition: border-color 0.15s, box-shadow 0.15s; color: var(--gray-900);
+    }
+    input:focus { border-color: var(--purple); box-shadow: 0 0 0 3px rgba(123,47,190,0.12); }
+    .btn-auth {
+        width: 100%; background: var(--purple); color: white; border: none;
+        border-radius: 10px; padding: 13px; font-size: 1rem; font-weight: 700;
+        cursor: pointer; transition: background 0.18s, transform 0.12s; margin-top: 6px;
+    }
+    .btn-auth:hover { background: var(--purple-light); transform: translateY(-1px); }
+    .hint { font-size: 0.78rem; color: var(--gray-600); margin-top: 6px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="auth-wrap">
+    <div class="auth-card">
+        <div class="auth-header">
+            <div style="font-size:2.4rem;margin-bottom:8px;">✉️</div>
+            <h2>Accept Your Invitation</h2>
+            <p>Set a password to activate your account</p>
+        </div>
+        <div class="auth-body">
+            <div class="invite-summary">
+                Welcome, <strong>{{ member.name }}</strong>! You've been invited as a
+                <strong>{{ member.role.title() }}</strong>. Your username is
+                <strong>{{ member.username }}</strong>.
+            </div>
+            <form method="post">
+                <div class="form-group">
+                    <label>Create Password</label>
+                    <div class="field-wrap">
+                        <span class="field-icon">🔒</span>
+                        <input type="password" name="password" placeholder="••••••••" required autofocus>
+                    </div>
+                    <div class="hint">At least 6 characters.</div>
+                </div>
+                <div class="form-group">
+                    <label>Confirm Password</label>
+                    <div class="field-wrap">
+                        <span class="field-icon">🔒</span>
+                        <input type="password" name="confirm" placeholder="••••••••" required>
+                    </div>
+                </div>
+                <button type="submit" class="btn-auth">Activate Account →</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
