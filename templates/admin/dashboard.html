@@ -152,6 +152,9 @@
             <p>Admin Panel</p>
         </div>
         <nav class="sidebar-nav">
+            <a href="{{ url_for('admin_overview') }}" class="{{ 'active' if request.endpoint == 'admin_overview' else '' }}">
+                <span class="icon">📊</span><span>Overview</span>
+            </a>
             <a href="{{ url_for('admin_dashboard') }}" class="active">
                 <span class="icon">📦</span><span>Products</span>
             </a>

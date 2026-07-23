@@ -745,7 +745,7 @@ def admin_login():
         if admin or (username == "admin" and password == "pillbox"):
             session["is_admin"] = True
             flash("Welcome back, Admin!", "success")
-            return redirect(url_for("admin_dashboard"))
+            return redirect(url_for("admin_overview"))
         flash("Invalid username or password.", "error")
     return render_template("admin/login.html")
 
@@ -758,6 +758,92 @@ def admin_logout():
 
 
 @app.route("/admin")
+@admin_required
+def admin_overview():
+    """Business overview — the 'at a glance' landing page for the store owner."""
+    orders   = load_orders()
+    products = get_products()
+    appts    = load_appointments()
+    now      = datetime.datetime.now()
+    today    = now.date().isoformat()
+
+    # ── Revenue ──────────────────────────────────────────────────────────────
+    # Count an order's money once it's paid or has progressed past pending payment.
+    def is_revenue(o):
+        return o.get("status") not in ("pending_payment", "cancelled", "refunded")
+
+    revenue_orders = [o for o in orders if is_revenue(o)]
+
+    def order_day(o):
+        try:
+            return datetime.datetime.fromisoformat(o.get("created_at", "")).date().isoformat()
+        except Exception:
+            return ""
+
+    today_revenue = sum(o["total"] for o in revenue_orders if order_day(o) == today)
+    today_orders  = sum(1 for o in orders if order_day(o) == today)
+    total_revenue = sum(o["total"] for o in revenue_orders)
+
+    # Last 7 days revenue for a mini trend
+    sales_by_day = {}
+    for i in range(6, -1, -1):
+        d = (now - datetime.timedelta(days=i))
+        sales_by_day[d.strftime("%a")] = 0.0
+    for o in revenue_orders:
+        try:
+            d = datetime.datetime.fromisoformat(o["created_at"])
+            key = d.strftime("%a")
+            if (now - d).days <= 6 and key in sales_by_day:
+                sales_by_day[key] += o["total"]
+        except Exception:
+            pass
+    max_day = max(sales_by_day.values()) if sales_by_day else 0
+
+    # ── Orders needing attention ─────────────────────────────────────────────
+    needs_attention = [o for o in orders if o.get("status") in ("processing", "out_for_delivery")]
+    awaiting_payment = sum(1 for o in orders if o.get("status") == "pending_payment")
+    recent_orders = sorted(orders, key=lambda o: o.get("created_at", ""), reverse=True)[:6]
+
+    status_counts = {}
+    for o in orders:
+        status_counts[o["status"]] = status_counts.get(o["status"], 0) + 1
+
+    # ── Inventory / low stock ────────────────────────────────────────────────
+    # Products carry an optional "stock" count; flag anything at/under threshold.
+    LOW_STOCK_THRESHOLD = 5
+    low_stock = [p for p in products if isinstance(p.get("stock"), int) and p["stock"] <= LOW_STOCK_THRESHOLD]
+    out_of_stock = [p for p in products if p.get("stock") == 0]
+
+    # ── Appointments ─────────────────────────────────────────────────────────
+    pending_appt_list = [a for a in appts if a.get("status") == "pending"]
+    upcoming_appts = sorted(
+        [a for a in appts if a.get("date", "") >= today and a.get("status") in ("pending", "confirmed")],
+        key=lambda a: (a.get("date", ""), a.get("time", "")),
+    )[:5]
+
+    return render_template(
+        "admin/overview.html",
+        today_revenue=today_revenue,
+        today_orders=today_orders,
+        total_revenue=total_revenue,
+        total_orders=len(orders),
+        sales_by_day=sales_by_day,
+        max_day=max_day,
+        needs_attention=needs_attention,
+        awaiting_payment=awaiting_payment,
+        recent_orders=recent_orders,
+        status_counts=status_counts,
+        low_stock=low_stock,
+        out_of_stock=out_of_stock,
+        low_stock_threshold=LOW_STOCK_THRESHOLD,
+        total_products=len(products),
+        pending_appt_count=len(pending_appt_list),
+        upcoming_appts=upcoming_appts,
+        categories=CATEGORIES,
+    )
+
+
+@app.route("/admin/products")
 @admin_required
 def admin_dashboard():
     products = get_products()
