@@ -1,55 +1,135 @@
 """
 Email delivery for The PillBox Pharmacy.
 
-Sends transactional emails (order + appointment confirmations) via Gmail SMTP
-using an App Password. All configuration comes from environment variables so no
-secrets are ever committed:
+Sends transactional emails (order + appointment confirmations, staff invites)
+via one of two transports, chosen automatically:
+
+  1. Brevo HTTP API  — preferred. Works on hosts (like Render's free plan) that
+     block outbound SMTP ports. Set BREVO_API_KEY to enable.
+  2. Gmail SMTP       — fallback for local dev. Set MAIL_USERNAME + MAIL_PASSWORD
+     (a Gmail App Password). Blocked on Render free tier, fine locally.
+
+All configuration comes from environment variables so no secrets are committed:
 
     MAIL_ENABLED     "true" to actually send (default: off — emails are logged only)
-    MAIL_USERNAME    your Gmail address, e.g. pillbox.pharmacy@gmail.com
-    MAIL_PASSWORD    a Gmail *App Password* (16 chars, NOT your normal password)
     MAIL_FROM_NAME   display name shown to customers (default: "The PillBox Pharmacy")
-    MAIL_REPLY_TO    optional reply-to address (defaults to MAIL_USERNAME)
+    MAIL_FROM_EMAIL  the "from" address (defaults to MAIL_USERNAME)
+    MAIL_REPLY_TO    optional reply-to address (defaults to the from address)
+
+    # Brevo API transport (recommended, works on Render):
+    BREVO_API_KEY    your Brevo (Sendinblue) API v3 key
+
+    # Gmail SMTP transport (local dev fallback):
+    MAIL_USERNAME    your Gmail address
+    MAIL_PASSWORD    a Gmail App Password (16 chars)
 
 If email isn't configured, send functions log a message and return False instead
 of raising — so checkout and booking never break during a demo.
-
-Setup guide for a Gmail App Password:
-    1. Turn on 2-Step Verification: https://myaccount.google.com/security
-    2. Create an App Password: https://myaccount.google.com/apppasswords
-    3. Put the 16-char password in MAIL_PASSWORD (spaces optional).
 """
 
 import os
+import json
 import smtplib
 import ssl
+import urllib.request
+import urllib.error
 from email.message import EmailMessage
 from email.utils import formataddr
 
 SMTP_HOST = "smtp.gmail.com"
 SMTP_PORT = 587
+BREVO_API_URL = "https://api.brevo.com/v3/smtp/email"
 
 
 def _config():
+    username = os.environ.get("MAIL_USERNAME", "").strip()
     return {
-        "enabled":   os.environ.get("MAIL_ENABLED", "").lower() == "true",
-        "username":  os.environ.get("MAIL_USERNAME", "").strip(),
-        "password":  os.environ.get("MAIL_PASSWORD", "").strip(),
-        "from_name": os.environ.get("MAIL_FROM_NAME", "The PillBox Pharmacy").strip(),
-        "reply_to":  os.environ.get("MAIL_REPLY_TO", "").strip(),
+        "enabled":    os.environ.get("MAIL_ENABLED", "").lower() == "true",
+        "username":   username,
+        "password":   os.environ.get("MAIL_PASSWORD", "").strip(),
+        "brevo_key":  os.environ.get("BREVO_API_KEY", "").strip(),
+        "from_name":  os.environ.get("MAIL_FROM_NAME", "The PillBox Pharmacy").strip(),
+        "from_email": os.environ.get("MAIL_FROM_EMAIL", username).strip() or username,
+        "reply_to":   os.environ.get("MAIL_REPLY_TO", "").strip(),
     }
 
 
 def is_configured():
-    """True if email is turned on and credentials are present."""
+    """True if email is on and at least one transport (Brevo or SMTP) is set up."""
     c = _config()
-    return c["enabled"] and bool(c["username"]) and bool(c["password"])
+    if not c["enabled"]:
+        return False
+    has_brevo = bool(c["brevo_key"]) and bool(c["from_email"])
+    has_smtp = bool(c["username"]) and bool(c["password"])
+    return has_brevo or has_smtp
+
+
+def _send_via_brevo(c, to_email, subject, html_body, text_body):
+    """Send through the Brevo HTTP API (works where SMTP ports are blocked)."""
+    payload = {
+        "sender": {"name": c["from_name"], "email": c["from_email"]},
+        "to": [{"email": to_email}],
+        "subject": subject,
+        "htmlContent": html_body,
+        "textContent": text_body,
+    }
+    reply_to = c["reply_to"] or c["from_email"]
+    if reply_to:
+        payload["replyTo"] = {"email": reply_to}
+
+    req = urllib.request.Request(
+        BREVO_API_URL,
+        data=json.dumps(payload).encode("utf-8"),
+        headers={
+            "accept": "application/json",
+            "content-type": "application/json",
+            "api-key": c["brevo_key"],
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            if 200 <= resp.status < 300:
+                print(f"[email] sent via Brevo to {to_email!r}: {subject!r}")
+                return True
+            print(f"[email] Brevo returned status {resp.status} for {to_email!r}")
+            return False
+    except urllib.error.HTTPError as e:
+        body = e.read().decode("utf-8", "replace")
+        print(f"[email] Brevo HTTP {e.code} for {to_email!r}: {body}")
+        return False
+    except Exception as e:
+        print(f"[email] Brevo send failed for {to_email!r}: {e}")
+        return False
+
+
+def _send_via_smtp(c, to_email, subject, html_body, text_body):
+    """Send through Gmail SMTP (local dev fallback)."""
+    msg = EmailMessage()
+    msg["Subject"] = subject
+    msg["From"] = formataddr((c["from_name"], c["username"]))
+    msg["To"] = to_email
+    msg["Reply-To"] = c["reply_to"] or c["username"]
+    msg.set_content(text_body)
+    msg.add_alternative(html_body, subtype="html")
+    try:
+        context = ssl.create_default_context()
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=15) as server:
+            server.starttls(context=context)
+            server.login(c["username"], c["password"])
+            server.send_message(msg)
+        print(f"[email] sent via SMTP to {to_email!r}: {subject!r}")
+        return True
+    except Exception as e:
+        print(f"[email] SMTP send failed for {to_email!r}: {e}")
+        return False
 
 
 def _send(to_email, subject, html_body, text_body):
     """
-    Low-level send. Returns True on success, False otherwise. Never raises —
-    a broken mail server must not take down checkout.
+    Low-level send. Prefers the Brevo API (works on Render), falls back to SMTP.
+    Returns True on success, False otherwise. Never raises — a broken mail
+    server must not take down checkout.
     """
     to_email = (to_email or "").strip()
     if not to_email:
@@ -62,25 +142,12 @@ def _send(to_email, subject, html_body, text_body):
         print(f"[email] (disabled) would send to {to_email!r}: {subject!r}")
         return False
 
-    msg = EmailMessage()
-    msg["Subject"] = subject
-    msg["From"] = formataddr((c["from_name"], c["username"]))
-    msg["To"] = to_email
-    msg["Reply-To"] = c["reply_to"] or c["username"]
-    msg.set_content(text_body)
-    msg.add_alternative(html_body, subtype="html")
-
-    try:
-        context = ssl.create_default_context()
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=15) as server:
-            server.starttls(context=context)
-            server.login(c["username"], c["password"])
-            server.send_message(msg)
-        print(f"[email] sent to {to_email!r}: {subject!r}")
-        return True
-    except Exception as e:
-        print(f"[email] FAILED to {to_email!r}: {e}")
-        return False
+    # Prefer Brevo (works on Render); fall back to SMTP for local dev.
+    if c["brevo_key"] and c["from_email"]:
+        return _send_via_brevo(c, to_email, subject, html_body, text_body)
+    if c["username"] and c["password"]:
+        return _send_via_smtp(c, to_email, subject, html_body, text_body)
+    return False
 
 
 # ── Shared HTML shell ─────────────────────────────────────────────────────────
