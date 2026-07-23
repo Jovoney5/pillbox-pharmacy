@@ -41,6 +41,12 @@ SMTP_PORT = 587
 BREVO_API_URL = "https://api.brevo.com/v3/smtp/email"
 
 
+def _looks_like_email(addr):
+    """Cheap sanity check so bad placeholder values don't break a send."""
+    addr = (addr or "").strip()
+    return "@" in addr and "." in addr.split("@")[-1] and " " not in addr
+
+
 def _config():
     username = os.environ.get("MAIL_USERNAME", "").strip()
     return {
@@ -73,8 +79,10 @@ def _send_via_brevo(c, to_email, subject, html_body, text_body):
         "htmlContent": html_body,
         "textContent": text_body,
     }
+    # Only include replyTo if it's a valid-looking address; a bad value (e.g. a
+    # leftover "value" placeholder) makes Brevo reject the whole send otherwise.
     reply_to = c["reply_to"] or c["from_email"]
-    if reply_to:
+    if _looks_like_email(reply_to):
         payload["replyTo"] = {"email": reply_to}
 
     req = urllib.request.Request(
