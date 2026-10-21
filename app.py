@@ -797,6 +797,22 @@ def upload_avatar():
     return jsonify({"success": True, "avatar": filename})
 
 
+@app.route("/profile", methods=["POST"])
+def update_profile():
+    uid = session.get("user_id")
+    if not uid:
+        return jsonify({"error": "Not logged in"}), 401
+    users = load_users()
+    user = users.get(str(uid))
+    if not user:
+        return jsonify({"error": "Not found"}), 404
+    for field in ("name", "whatsapp", "gender", "address"):
+        if field in request.form:
+            user[field] = request.form.get(field, "").strip()
+    save_users(users)
+    return jsonify({"success": True})
+
+
 # ── Admin routes ─────────────────────────────────────────────────────────────
 
 @app.route("/admin/login", methods=["GET", "POST"])

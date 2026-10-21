@@ -171,6 +171,77 @@
         .suggest-price { font-size: 0.82rem; font-weight: 700; color: var(--purple); }
         .suggest-empty { padding: 16px; text-align: center; color: var(--gray-600); font-size: 0.85rem; }
 
+        /* ========== PROFILE ========== */
+        .profile-wrap { position: relative; }
+        .profile-trigger { background: none; border: none; cursor: pointer; padding: 0; display: flex; }
+        .profile-avatar {
+            width: 36px; height: 36px; border-radius: 50%;
+            object-fit: cover; border: 2px solid rgba(255,255,255,0.6);
+            display: flex; align-items: center; justify-content: center;
+        }
+        .profile-initial {
+            background: var(--purple-dark); color: #fff;
+            font-weight: 800; font-size: 1rem;
+        }
+        .profile-initial.lg { width: 54px; height: 54px; font-size: 1.4rem; border-radius: 50%; }
+        .profile-menu {
+            position: absolute; top: calc(100% + 10px); right: 0;
+            width: 240px; background: #fff; border-radius: 14px;
+            box-shadow: var(--shadow-lg); border: 1px solid var(--gray-200);
+            overflow: hidden; display: none; z-index: 400;
+        }
+        .profile-menu.open { display: block; }
+        .profile-menu-head {
+            display: flex; align-items: center; gap: 12px;
+            padding: 16px; background: linear-gradient(135deg, var(--purple-deep), var(--purple)); color: #fff;
+        }
+        .avatar-upload { position: relative; cursor: pointer; flex-shrink: 0; }
+        .avatar-upload img, .avatar-upload .profile-initial {
+            width: 54px; height: 54px; border-radius: 50%; object-fit: cover;
+            border: 2px solid rgba(255,255,255,0.6); display: flex; align-items: center; justify-content: center;
+        }
+        .avatar-cam {
+            position: absolute; bottom: -2px; right: -2px;
+            background: #fff; border-radius: 50%; width: 20px; height: 20px;
+            display: flex; align-items: center; justify-content: center; font-size: 0.7rem;
+            box-shadow: var(--shadow);
+        }
+        .profile-id { min-width: 0; }
+        .profile-name  { font-weight: 700; font-size: 0.92rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .profile-email { font-size: 0.74rem; opacity: 0.85; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .profile-menu-item {
+            display: flex; align-items: center; gap: 10px; width: 100%;
+            padding: 12px 16px; font-size: 0.88rem; font-weight: 600; color: var(--gray-700);
+            background: none; border: none; cursor: pointer; font-family: inherit; text-align: left;
+            border-top: 1px solid var(--gray-100);
+        }
+        .profile-menu-item:hover { background: var(--purple-pale); color: var(--purple-dark); }
+        .profile-menu-item.danger:hover { background: #fee2e2; color: var(--red); }
+
+        /* profile edit modal */
+        .profile-modal-overlay {
+            position: fixed; inset: 0; background: rgba(26,18,48,0.6);
+            z-index: 1000; display: none; align-items: center; justify-content: center; padding: 16px;
+        }
+        .profile-modal-overlay.open { display: flex; }
+        .profile-modal { background: #fff; border-radius: 16px; width: 100%; max-width: 440px; max-height: 90vh; overflow-y: auto; }
+        .profile-modal-head {
+            background: linear-gradient(135deg, var(--purple-deep), var(--purple)); color: #fff;
+            padding: 18px 20px; border-radius: 16px 16px 0 0; position: relative;
+        }
+        .profile-modal-head h2 { font-size: 1.15rem; font-weight: 800; }
+        .profile-modal-close {
+            position: absolute; top: 14px; right: 14px; background: rgba(255,255,255,0.2);
+            border: none; color: #fff; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; font-size: 1rem;
+        }
+        .profile-modal-body { padding: 18px 20px 22px; display: flex; flex-direction: column; gap: 12px; }
+        .profile-field label { font-size: 0.74rem; font-weight: 700; color: var(--gray-700); text-transform: uppercase; letter-spacing: 0.04em; display: block; margin-bottom: 4px; }
+        .profile-field input, .profile-field select, .profile-field textarea {
+            width: 100%; padding: 10px 12px; border: 1.5px solid var(--gray-200); border-radius: 9px;
+            font-size: 0.92rem; font-family: inherit; color: var(--gray-900);
+        }
+        .profile-field textarea { resize: none; min-height: 60px; }
+
         /* ========== BUTTONS ========== */
         .btn {
             display: inline-flex; align-items: center; justify-content: center; gap: 6px;
@@ -194,13 +265,13 @@
             display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
             gap: 22px;
         }
-        .footer-inner h4 { color: #fff; font-size: 0.95rem; margin-bottom: 10px; }
-        .footer-inner a, .footer-inner p { font-size: 0.85rem; line-height: 1.9; color: rgba(255,255,255,0.72); }
-        .footer-inner a:hover { color: #fff; }
+        .footer-inner h4 { color: #fff; font-size: 0.98rem; font-weight: 800; margin-bottom: 10px; }
+        .footer-inner a, .footer-inner p { font-size: 0.86rem; line-height: 1.9; color: #fff; font-weight: 600; }
+        .footer-inner a:hover { color: #fff; text-decoration: underline; }
         .footer-bottom {
             max-width: 1100px; margin: 20px auto 0;
-            padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.15);
-            text-align: center; font-size: 0.78rem; color: rgba(255,255,255,0.5);
+            padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.25);
+            text-align: center; font-size: 0.8rem; font-weight: 600; color: rgba(255,255,255,0.85);
         }
 
         /* ========== MOBILE BOTTOM NAV ========== */
@@ -264,16 +335,46 @@
         </div>
 
         <div class="header-actions">
-            {% if current_user %}
-                <a href="{{ url_for('logout') }}" class="header-link-text header-desktop-only">Sign Out</a>
-            {% else %}
-                <a href="{{ url_for('login') }}" class="header-link-text header-desktop-only">Sign In</a>
-            {% endif %}
             <button class="header-btn header-desktop-only" onclick="openScheduler()">Book</button>
-            <a href="{{ url_for('cart') }}" class="header-icon">
-                <span class="ic">🛒</span>
-                {% if cart_count > 0 %}<span class="cart-badge">{{ cart_count }}</span>{% endif %}
+
+            {% if current_user %}
+            <!-- Logged in: avatar + dropdown -->
+            <div class="profile-wrap" id="profileWrap">
+                <button class="profile-trigger" onclick="toggleProfile(event)" aria-label="Profile">
+                    {% if current_user.avatar %}
+                    <img class="profile-avatar" src="{{ url_for('static', filename='uploads/' + current_user.avatar) }}" alt="">
+                    {% else %}
+                    <span class="profile-avatar profile-initial">{{ current_user.name[0]|upper }}</span>
+                    {% endif %}
+                </button>
+                <div class="profile-menu" id="profileMenu">
+                    <div class="profile-menu-head">
+                        <label class="avatar-upload" title="Change photo">
+                            {% if current_user.avatar %}
+                            <img id="menuAvatar" src="{{ url_for('static', filename='uploads/' + current_user.avatar) }}" alt="">
+                            {% else %}
+                            <span id="menuAvatar" class="profile-initial lg">{{ current_user.name[0]|upper }}</span>
+                            {% endif %}
+                            <span class="avatar-cam">📷</span>
+                            <input type="file" accept="image/*" onchange="uploadAvatar(this)" hidden>
+                        </label>
+                        <div class="profile-id">
+                            <div class="profile-name">{{ current_user.name }}</div>
+                            <div class="profile-email">{{ current_user.email }}</div>
+                        </div>
+                    </div>
+                    <button class="profile-menu-item" onclick="openProfileEdit()">👤 My Details</button>
+                    <a class="profile-menu-item" href="{{ url_for('cart') }}">🛒 My Cart</a>
+                    <a class="profile-menu-item danger" href="{{ url_for('logout') }}">🚪 Log Out</a>
+                </div>
+            </div>
+            {% else %}
+            <!-- Logged out: sign-in icon -->
+            <a href="{{ url_for('login') }}" class="header-icon" title="Sign in">
+                <span class="ic">👤</span>
+                <span class="header-desktop-only" style="font-size:0.82rem;">Sign In</span>
             </a>
+            {% endif %}
         </div>
     </div>
 
@@ -398,6 +499,43 @@
     </div>
 </div>
 
+{% if current_user %}
+<!-- ========== PROFILE EDIT MODAL ========== -->
+<div class="profile-modal-overlay" id="profileModal" onclick="closeProfileEdit(event)">
+    <div class="profile-modal" onclick="event.stopPropagation()">
+        <div class="profile-modal-head">
+            <h2>My Details</h2>
+            <button class="profile-modal-close" onclick="closeProfileEdit()">&#10005;</button>
+        </div>
+        <form class="profile-modal-body" id="profileForm" onsubmit="saveProfile(event)">
+            <div class="profile-field">
+                <label>Full Name</label>
+                <input name="name" value="{{ current_user.name or '' }}" placeholder="Your name">
+            </div>
+            <div class="profile-field">
+                <label>WhatsApp Number</label>
+                <input name="whatsapp" type="tel" value="{{ current_user.whatsapp or '' }}" placeholder="(876) 000-0000">
+            </div>
+            <div class="profile-field">
+                <label>Gender</label>
+                <select name="gender">
+                    {% set g = current_user.gender or '' %}
+                    <option value="" {{ 'selected' if g == '' }}>Prefer not to say</option>
+                    <option value="Male" {{ 'selected' if g == 'Male' }}>Male</option>
+                    <option value="Female" {{ 'selected' if g == 'Female' }}>Female</option>
+                    <option value="Other" {{ 'selected' if g == 'Other' }}>Other</option>
+                </select>
+            </div>
+            <div class="profile-field">
+                <label>Delivery Address</label>
+                <textarea name="address" placeholder="Street, town, parish">{{ current_user.address or '' }}</textarea>
+            </div>
+            <button type="submit" class="btn btn-primary" id="profileSaveBtn" style="width:100%;">Save Details</button>
+        </form>
+    </div>
+</div>
+{% endif %}
+
 <script>
     // ===== Appointment modal =====
     const apptDateInput = document.getElementById('apptDate');
@@ -513,6 +651,48 @@
         input.addEventListener('focus', function() { if (this.value.trim()) input.dispatchEvent(new Event('input')); });
         document.addEventListener('click', e => { if (!box.parentElement.contains(e.target)) box.classList.remove('open'); });
     })();
+
+    // ===== Profile dropdown + modal =====
+    function toggleProfile(e) {
+        e.stopPropagation();
+        document.getElementById('profileMenu')?.classList.toggle('open');
+    }
+    document.addEventListener('click', e => {
+        const wrap = document.getElementById('profileWrap');
+        if (wrap && !wrap.contains(e.target)) document.getElementById('profileMenu')?.classList.remove('open');
+    });
+
+    function openProfileEdit() {
+        document.getElementById('profileMenu')?.classList.remove('open');
+        document.getElementById('profileModal')?.classList.add('open');
+    }
+    function closeProfileEdit(e) {
+        if (!e || e.target.id === 'profileModal') document.getElementById('profileModal')?.classList.remove('open');
+    }
+    function saveProfile(e) {
+        e.preventDefault();
+        const btn = document.getElementById('profileSaveBtn');
+        btn.disabled = true; btn.textContent = 'Saving...';
+        fetch('/profile', { method: 'POST', body: new FormData(e.target) })
+            .then(r => r.json())
+            .then(d => {
+                btn.textContent = d.success ? '✓ Saved' : 'Save Details';
+                if (d.success) {
+                    const nm = e.target.querySelector('[name="name"]').value.trim();
+                    document.querySelectorAll('.profile-name').forEach(el => el.textContent = nm);
+                    setTimeout(() => closeProfileEdit(), 700);
+                }
+                setTimeout(() => { btn.disabled = false; btn.textContent = 'Save Details'; }, 1000);
+            })
+            .catch(() => { btn.disabled = false; btn.textContent = 'Save Details'; });
+    }
+    function uploadAvatar(input) {
+        if (!input.files || !input.files[0]) return;
+        const fd = new FormData(); fd.append('avatar', input.files[0]);
+        fetch('/profile/avatar', { method: 'POST', body: fd })
+            .then(r => r.json())
+            .then(d => { if (d.success) window.location.reload(); });
+    }
 </script>
 
 {% block extra_js %}{% endblock %}
