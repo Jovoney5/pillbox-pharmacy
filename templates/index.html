@@ -2,266 +2,169 @@
 {% block title %}Leeds Pharmacy – Home{% endblock %}
 
 {% block extra_css %}
-<style>
-    /* Amazon-style: gray page backdrop so white panels stand out */
-    body { background: #e9ecf2; }
-    main { padding-top: 18px; padding-bottom: 40px; }
-
-    /* ── HERO STRIP ── */
-    .hero-strip {
+    /* ===== HERO ===== */
+    .hero {
         background: linear-gradient(120deg, var(--purple-deep), var(--purple));
         color: #fff;
-        border-radius: 14px;
-        padding: 26px 30px;
-        margin-bottom: 18px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 20px;
-        flex-wrap: wrap;
-        box-shadow: var(--shadow);
-    }
-    .hero-strip h1 { font-size: 1.7rem; font-weight: 800; margin-bottom: 6px; line-height: 1.2; }
-    .hero-strip p  { font-size: 0.95rem; opacity: 0.9; }
-    .hero-strip .hero-cta {
-        background: #fff; color: var(--purple-dark);
-        padding: 11px 24px; border-radius: 8px;
-        font-weight: 700; font-size: 0.92rem; white-space: nowrap;
-        transition: transform 0.15s;
-    }
-    .hero-strip .hero-cta:hover { transform: translateY(-2px); }
-
-    /* ── PANEL (white card that holds a section) ── */
-    .panel {
-        background: #fff;
-        border-radius: 14px;
-        box-shadow: var(--shadow);
-        padding: 20px 22px;
-        margin-bottom: 18px;
-    }
-    .panel-head {
-        display: flex;
-        align-items: baseline;
-        justify-content: space-between;
-        gap: 12px;
+        border-radius: 12px;
+        padding: 22px 20px;
         margin-bottom: 16px;
     }
-    .panel-title { font-size: 1.15rem; font-weight: 800; color: var(--gray-900); }
-    .panel-link  { font-size: 0.85rem; font-weight: 700; color: var(--purple); white-space: nowrap; }
-    .panel-link:hover { text-decoration: underline; }
+    .hero h1 { font-size: 1.4rem; font-weight: 800; margin-bottom: 6px; line-height: 1.25; }
+    .hero p  { font-size: 0.9rem; opacity: 0.9; margin-bottom: 14px; }
+    .hero a  { display: inline-block; background: #fff; color: var(--purple-dark); padding: 9px 18px; border-radius: 8px; font-weight: 700; font-size: 0.88rem; }
 
-    /* ── CATEGORY TILES (Amazon-style image tiles) ── */
-    .cat-tiles {
+    /* ===== SECTION ===== */
+    .section { margin-bottom: 22px; }
+    .section-head {
+        display: flex; align-items: baseline; justify-content: space-between;
+        margin-bottom: 12px;
+    }
+    .section-head h2 { font-size: 1.1rem; font-weight: 800; color: var(--gray-900); }
+    .section-head a  { font-size: 0.82rem; font-weight: 700; color: var(--purple); }
+
+    /* ===== CATEGORY GRID ===== */
+    .cat-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-        gap: 14px;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
     }
-    .cat-tile {
-        display: block;
-        border: 1px solid var(--gray-200);
-        border-radius: 10px;
-        overflow: hidden;
-        background: #fff;
-        transition: box-shadow 0.18s, transform 0.18s;
+    .cat-item {
+        background: #fff; border-radius: 10px; overflow: hidden;
+        box-shadow: var(--shadow);
     }
-    .cat-tile:hover { box-shadow: var(--shadow-lg); transform: translateY(-3px); border-color: var(--purple-light); }
-    .cat-tile-img { width: 100%; height: 110px; object-fit: cover; display: block; background: var(--gray-100); }
-    .cat-tile-name {
-        padding: 9px 10px;
-        font-size: 0.82rem; font-weight: 700; color: var(--gray-900);
-        text-align: center;
-    }
+    .cat-item img { width: 100%; height: 90px; object-fit: cover; background: var(--gray-100); }
+    .cat-item span { display: block; padding: 8px 6px; font-size: 0.76rem; font-weight: 700; text-align: center; color: var(--gray-900); }
 
-    /* ── HORIZONTAL DEALS STRIP ── */
-    .deals-row {
-        display: flex;
-        gap: 14px;
-        overflow-x: auto;
-        padding-bottom: 6px;
-        scroll-snap-type: x mandatory;
-        -webkit-overflow-scrolling: touch;
+    /* ===== PRODUCT GRID ===== */
+    .prod-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
     }
-    .deals-row::-webkit-scrollbar { height: 6px; }
-    .deals-row::-webkit-scrollbar-thumb { background: var(--gray-200); border-radius: 3px; }
-    .deal-card {
-        flex: 0 0 auto;
-        width: 160px;
-        border: 1px solid var(--gray-200);
-        border-radius: 10px;
-        overflow: hidden;
-        scroll-snap-align: start;
-        background: #fff;
-        transition: box-shadow 0.18s, transform 0.18s;
-        position: relative;
+    .prod {
+        background: #fff; border-radius: 10px; overflow: hidden;
+        box-shadow: var(--shadow); display: flex; flex-direction: column;
     }
-    .deal-card:hover { box-shadow: var(--shadow-lg); transform: translateY(-3px); border-color: var(--purple-light); }
-    .deal-badge {
+    .prod > a { display: block; }
+    .prod img { width: 100%; height: 150px; object-fit: cover; background: var(--gray-100); }
+    .prod-body { padding: 10px 11px 12px; display: flex; flex-direction: column; flex: 1; }
+    .prod-name { font-size: 0.86rem; font-weight: 600; color: var(--gray-900); line-height: 1.3; margin-bottom: 8px; }
+    .prod-foot { margin-top: auto; display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+    .prod-price { font-size: 1rem; font-weight: 800; color: var(--gray-900); }
+    .prod-price.sale { color: var(--red); }
+    .prod-orig { font-size: 0.72rem; text-decoration: line-through; color: var(--gray-600); margin-right: 4px; }
+    .prod-disc { background:#dcfce7; color:var(--green); border-radius:6px; padding:1px 6px; font-size:0.68rem; font-weight:700; }
+    .add {
+        background: var(--purple); color: #fff; border: none; cursor: pointer;
+        border-radius: 7px; padding: 7px 12px; font-size: 0.8rem; font-weight: 700; font-family: inherit;
+    }
+    .add:hover { background: var(--purple-light); }
+
+    /* ===== DEAL BADGE ===== */
+    .prod { position: relative; }
+    .deal-tag {
         position: absolute; top: 8px; left: 8px; z-index: 2;
-        background: var(--red); color: #fff;
-        border-radius: 6px; padding: 2px 8px;
-        font-size: 0.72rem; font-weight: 800;
+        background: var(--red); color: #fff; border-radius: 6px;
+        padding: 2px 8px; font-size: 0.7rem; font-weight: 800;
     }
-    .deal-img { width: 100%; height: 130px; object-fit: cover; display: block; background: var(--gray-100); }
-    .deal-body { padding: 10px 12px 12px; }
-    .deal-name {
-        font-size: 0.82rem; font-weight: 600; color: var(--gray-900);
-        line-height: 1.3; margin-bottom: 6px;
-        display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
-        min-height: 2.1em;
-    }
-    .deal-prices { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
-    .deal-price { font-size: 0.95rem; font-weight: 800; color: var(--red); }
-    .deal-orig  { font-size: 0.72rem; text-decoration: line-through; color: var(--gray-600); }
 
-    /* ── PRODUCT GRID ── */
-    .products-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
-        gap: 16px;
+    /* 3-up products on wider screens */
+    @media (min-width: 560px) { .prod-grid { grid-template-columns: repeat(3, 1fr); } }
+    @media (min-width: 820px) {
+        .prod-grid { grid-template-columns: repeat(4, 1fr); }
+        .cat-grid  { grid-template-columns: repeat(6, 1fr); }
+        .hero h1 { font-size: 1.8rem; }
     }
-    .product-card {
-        background: #fff;
-        border: 1px solid var(--gray-200);
-        border-radius: 10px;
-        overflow: hidden;
-        transition: box-shadow 0.18s, transform 0.18s;
-        display: flex;
-        flex-direction: column;
-    }
-    .product-card:hover { box-shadow: var(--shadow-lg); transform: translateY(-3px); border-color: var(--purple-light); }
-    .product-img { width: 100%; height: 175px; object-fit: cover; display: block; background: var(--gray-100); }
-    .product-body { padding: 13px; display: flex; flex-direction: column; flex: 1; }
-    .product-name { font-weight: 600; font-size: 0.92rem; margin-bottom: 4px; color: var(--gray-900); line-height: 1.3; }
-    .product-desc {
-        font-size: 0.78rem; color: var(--gray-600); margin-bottom: 10px; line-height: 1.4;
-        display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
-    }
-    .product-footer { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: auto; flex-wrap: wrap; }
-    .product-price { font-size: 1.05rem; font-weight: 800; color: var(--gray-900); }
-    .product-price.sale { color: var(--red); }
-    .price-orig { font-size: 0.72rem; text-decoration: line-through; color: var(--gray-600); }
-    .price-disc { background:#dcfce7; color:#16a34a; border-radius:8px; padding:1px 7px; font-size:0.7rem; font-weight:700; }
-    .add-btn {
-        background: var(--purple); color: #fff; border: none;
-        border-radius: 6px; padding: 7px 14px;
-        font-size: 0.82rem; font-weight: 600; cursor: pointer;
-        transition: background 0.18s; margin-left: auto;
-    }
-    .add-btn:hover { background: var(--purple-light); }
-
-    @media (max-width: 600px) {
-        .hero-strip { padding: 20px; }
-        .hero-strip h1 { font-size: 1.35rem; }
-        .cat-tiles { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px; }
-        .cat-tile-img { height: 86px; }
-        .products-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
-        .panel { padding: 16px; }
-    }
-</style>
 {% endblock %}
 
 {% block content %}
 
-<!-- ── HERO STRIP ── -->
-<div class="hero-strip">
-    <div>
-        <h1>Everything for your health 💊</h1>
-        <p>Pharmacy, personal care, perfumes, books &amp; office supplies — delivered.</p>
-    </div>
-    <a href="{{ url_for('shop') }}" class="hero-cta">Shop All Products →</a>
+<!-- HERO -->
+<div class="hero">
+    <h1>Everything for your health 💊</h1>
+    <p>Pharmacy, personal care, perfumes, books &amp; office supplies.</p>
+    <a href="{{ url_for('shop') }}">Shop All →</a>
 </div>
 
-<!-- ── CATEGORIES ── -->
-<div class="panel">
-    <div class="panel-head">
-        <span class="panel-title">Shop by Category</span>
-        <a href="{{ url_for('shop') }}" class="panel-link">See all →</a>
+<!-- CATEGORIES -->
+<div class="section">
+    <div class="section-head">
+        <h2>Shop by Category</h2>
+        <a href="{{ url_for('shop') }}">See all</a>
     </div>
-    <div class="cat-tiles">
-        <a href="{{ url_for('shop') }}?category=pharmacy" class="cat-tile">
-            <img class="cat-tile-img" src="{{ cat_images['pharmacy'] }}" alt="Pharmacy & Health">
-            <div class="cat-tile-name">Pharmacy &amp; Health</div>
+    <div class="cat-grid">
+        {% for key, label in [
+            ('pharmacy', 'Pharmacy'), ('braces', 'Braces'), ('personal_care', 'Personal Care'),
+            ('perfumes', 'Perfumes'), ('books', 'Books'), ('stationery', 'Stationery')
+        ] %}
+        {% if cat_images.get(key) %}
+        <a href="{{ url_for('shop') }}?category={{ key }}" class="cat-item">
+            <img src="{{ cat_images[key] }}" alt="{{ label }}">
+            <span>{{ label }}</span>
         </a>
-        <a href="{{ url_for('shop') }}?category=braces" class="cat-tile">
-            <img class="cat-tile-img" src="{{ cat_images['braces'] }}" alt="Braces & Supports">
-            <div class="cat-tile-name">Braces &amp; Supports</div>
-        </a>
-        <a href="{{ url_for('shop') }}?category=personal_care" class="cat-tile">
-            <img class="cat-tile-img" src="{{ cat_images['personal_care'] }}" alt="Personal Care">
-            <div class="cat-tile-name">Personal Care</div>
-        </a>
-        <a href="{{ url_for('shop') }}?category=perfumes" class="cat-tile">
-            <img class="cat-tile-img" src="{{ cat_images['perfumes'] }}" alt="Perfumes">
-            <div class="cat-tile-name">Perfumes</div>
-        </a>
-        <a href="{{ url_for('shop') }}?category=books" class="cat-tile">
-            <img class="cat-tile-img" src="{{ cat_images['books'] }}" alt="Books">
-            <div class="cat-tile-name">Books</div>
-        </a>
-        <a href="{{ url_for('shop') }}?category=stationery" class="cat-tile">
-            <img class="cat-tile-img" src="{{ cat_images['stationery'] }}" alt="Stationery">
-            <div class="cat-tile-name">Office &amp; Stationery</div>
-        </a>
-    </div>
-</div>
-
-<!-- ── DEALS: admin-discounted products ── -->
-{% if deals %}
-<div class="panel">
-    <div class="panel-head">
-        <span class="panel-title">🔥 Today's Deals</span>
-        <a href="{{ url_for('shop') }}" class="panel-link">See all →</a>
-    </div>
-    <div class="deals-row">
-        {% for product in deals %}
-        <a href="{{ url_for('product', product_id=product.id) }}" class="deal-card">
-            <span class="deal-badge">-{{ product.discount }}%</span>
-            <img src="{{ product.img }}" alt="{{ product.name }}" class="deal-img">
-            <div class="deal-body">
-                <div class="deal-name">{{ product.name }}</div>
-                <div class="deal-prices">
-                    <span class="deal-price">JMD {{ "%.2f"|format(product.effective_price) }}</span>
-                    <span class="deal-orig">JMD {{ "%.2f"|format(product.original_price) }}</span>
-                </div>
-            </div>
-        </a>
+        {% endif %}
         {% endfor %}
     </div>
 </div>
-{% endif %}
 
-<!-- ── FEATURED / PICKED FOR YOU ── -->
-<div class="panel">
-    <div class="panel-head">
-        <span class="panel-title">{% if personalised %}Picked For You{% else %}Featured Products{% endif %}</span>
-        <a href="{{ url_for('shop') }}" class="panel-link">See all →</a>
+<!-- DEALS -->
+{% if deals %}
+<div class="section">
+    <div class="section-head">
+        <h2>🔥 Today's Deals</h2>
+        <a href="{{ url_for('shop') }}">See all</a>
     </div>
-    <div class="products-grid">
-        {% for product in featured %}
-        <div class="product-card">
-            <a href="{{ url_for('product', product_id=product.id) }}">
-                <img src="{{ product.img }}" alt="{{ product.name }}" class="product-img">
-            </a>
-            <div class="product-body">
-                <div class="product-name">{{ product.name }}</div>
-                <div class="product-desc">{{ product.description }}</div>
-                <div class="product-footer">
-                    {% if product.discount > 0 %}
-                    <div style="display:flex;flex-direction:column;">
-                        <span class="product-price sale">JMD {{ "%.2f"|format(product.effective_price) }}</span>
-                        <span class="price-orig">JMD {{ "%.2f"|format(product.original_price) }}</span>
+    <div class="prod-grid">
+        {% for p in deals %}
+        <div class="prod">
+            <span class="deal-tag">-{{ p.discount }}%</span>
+            <a href="{{ url_for('product', product_id=p.id) }}"><img src="{{ p.img }}" alt="{{ p.name }}"></a>
+            <div class="prod-body">
+                <div class="prod-name">{{ p.name }}</div>
+                <div class="prod-foot">
+                    <div>
+                        <span class="prod-orig">JMD {{ "%.0f"|format(p.original_price) }}</span>
+                        <span class="prod-price sale">JMD {{ "%.0f"|format(p.effective_price) }}</span>
                     </div>
-                    <span class="price-disc">-{{ product.discount }}%</span>
-                    {% else %}
-                    <span class="product-price">JMD {{ "%.2f"|format(product.effective_price) }}</span>
-                    {% endif %}
-                    <button class="add-btn" onclick="addToCart({{ product.id }}, this)">+ Cart</button>
+                    <button class="add" onclick="addToCart({{ p.id }}, this)">+</button>
                 </div>
             </div>
         </div>
         {% endfor %}
     </div>
-    <div style="text-align:center; margin-top:22px;">
+</div>
+{% endif %}
+
+<!-- FEATURED -->
+<div class="section">
+    <div class="section-head">
+        <h2>{% if personalised %}Picked For You{% else %}Featured{% endif %}</h2>
+        <a href="{{ url_for('shop') }}">See all</a>
+    </div>
+    <div class="prod-grid">
+        {% for p in featured %}
+        <div class="prod">
+            {% if p.discount > 0 %}<span class="deal-tag">-{{ p.discount }}%</span>{% endif %}
+            <a href="{{ url_for('product', product_id=p.id) }}"><img src="{{ p.img }}" alt="{{ p.name }}"></a>
+            <div class="prod-body">
+                <div class="prod-name">{{ p.name }}</div>
+                <div class="prod-foot">
+                    <div>
+                        {% if p.discount > 0 %}
+                        <span class="prod-orig">JMD {{ "%.0f"|format(p.original_price) }}</span>
+                        <span class="prod-price sale">JMD {{ "%.0f"|format(p.effective_price) }}</span>
+                        {% else %}
+                        <span class="prod-price">JMD {{ "%.0f"|format(p.effective_price) }}</span>
+                        {% endif %}
+                    </div>
+                    <button class="add" onclick="addToCart({{ p.id }}, this)">+</button>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    <div style="text-align:center; margin-top:16px;">
         <a href="{{ url_for('shop') }}" class="btn btn-outline">View All Products →</a>
     </div>
 </div>
@@ -270,26 +173,18 @@
 
 {% block extra_js %}
 <script>
-    // ── Add to cart ──
     function addToCart(productId, btn) {
         btn.disabled = true;
-        btn.textContent = '...';
+        const old = btn.textContent;
+        btn.textContent = '…';
         fetch(`/add_to_cart/${productId}`, { method: 'POST' })
             .then(r => r.json())
             .then(data => {
-                btn.textContent = '✓ Added';
-                btn.style.background = 'var(--purple-dark)';
-                const badge = document.querySelector('.cart-badge');
-                if (badge) { badge.textContent = data.count; }
-                else {
-                    const cartLink = document.querySelector('.nav-cart');
-                    const b = document.createElement('span');
-                    b.className = 'cart-badge';
-                    b.textContent = data.count;
-                    cartLink.insertBefore(b, cartLink.lastChild);
-                }
-                setTimeout(() => { btn.textContent = '+ Cart'; btn.style.background = ''; btn.disabled = false; }, 1800);
-            });
+                btn.textContent = '✓';
+                document.querySelectorAll('.cart-badge, .bn-badge').forEach(b => b.textContent = data.count);
+                setTimeout(() => { btn.textContent = old; btn.disabled = false; }, 1200);
+            })
+            .catch(() => { btn.textContent = old; btn.disabled = false; });
     }
 </script>
 {% endblock %}
