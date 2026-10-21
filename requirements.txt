@@ -3,3 +3,4 @@ gunicorn
 werkzeug
 python-dotenv
 stripe
+psycopg2-binary
