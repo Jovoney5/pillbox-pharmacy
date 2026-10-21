@@ -391,6 +391,8 @@ def search_suggest():
     q = request.args.get("q", "").strip()
     if len(q) < 1:
         return jsonify([])
+    # Log the search term (even partial) so admin can see what people look for.
+    _log_search(q)
     products = get_products()
     results = search_products_ranked(q, products, limit=3)
     payload = [
@@ -1261,6 +1263,184 @@ def admin_stats():
         orders=orders,
         categories=CATEGORIES,
     )
+
+
+# ── Visitor analytics ─────────────────────────────────────────────────────────
+
+def load_events():
+    return db.read_list("events")
+
+
+def save_events(events):
+    db.write_list("events", events)
+
+
+# Keep only recent events so the table doesn't grow forever (7 days).
+_EVENT_RETENTION_DAYS = 7
+# A visitor counts as "online" if seen within this many seconds.
+_ONLINE_WINDOW_SECONDS = 60
+
+
+def _device_type(ua):
+    ua = (ua or "").lower()
+    if any(t in ua for t in ("ipad", "tablet")):
+        return "tablet"
+    if any(t in ua for t in ("iphone", "android", "mobile")):
+        return "phone"
+    return "desktop"
+
+
+@app.route("/api/track", methods=["POST"])
+def api_track():
+    """Record one visitor event (page view / product click / heartbeat)."""
+    data = request.get_json(silent=True) or {}
+    device = (data.get("device") or "")[:40]
+    if not device:
+        return jsonify({"ok": False}), 400
+
+    now = datetime.datetime.now()
+    event = {
+        "id":        uuid.uuid4().hex,
+        "device":    device,
+        "type":      (data.get("type") or "view")[:20],      # view | click | heartbeat
+        "page":      (data.get("page") or "")[:120],
+        "label":     (data.get("label") or "")[:120],         # product name etc.
+        "device_type": _device_type(request.headers.get("User-Agent")),
+        "ts":        now.isoformat(),
+    }
+
+    events = load_events()
+    # Trim old events while we're here
+    cutoff = (now - datetime.timedelta(days=_EVENT_RETENTION_DAYS)).isoformat()
+    events = [e for e in events if e.get("ts", "") >= cutoff]
+    events.append(event)
+    save_events(events)
+    return jsonify({"ok": True})
+
+
+def _analytics_summary():
+    """Compute the live + historical analytics shown on the dashboard."""
+    events = load_events()
+    now = datetime.datetime.now()
+    online_cutoff = (now - datetime.timedelta(seconds=_ONLINE_WINDOW_SECONDS)).isoformat()
+    today = now.date().isoformat()
+
+    # Online now (distinct devices seen in the last window)
+    online_devices = {e["device"] for e in events if e.get("ts", "") >= online_cutoff}
+    online_by_type = {"phone": set(), "desktop": set(), "tablet": set()}
+    for e in events:
+        if e.get("ts", "") >= online_cutoff:
+            online_by_type.get(e.get("device_type", "desktop"), online_by_type["desktop"]).add(e["device"])
+
+    # Sessions: group a device's events, duration = last - first (per device, today)
+    sessions = {}
+    for e in events:
+        if not e.get("ts", "").startswith(today):
+            continue
+        d = e["device"]
+        s = sessions.setdefault(d, {"first": e["ts"], "last": e["ts"], "type": e.get("device_type"), "count": 0})
+        s["first"] = min(s["first"], e["ts"])
+        s["last"] = max(s["last"], e["ts"])
+        s["count"] += 1
+
+    def dur_secs(s):
+        try:
+            return int((datetime.datetime.fromisoformat(s["last"]) -
+                        datetime.datetime.fromisoformat(s["first"])).total_seconds())
+        except Exception:
+            return 0
+
+    visitors_today = len(sessions)
+    avg_session = int(sum(dur_secs(s) for s in sessions.values()) / visitors_today) if visitors_today else 0
+
+    # Most-clicked products / pages (clicks + views on product pages)
+    label_counts = {}
+    for e in events:
+        if e.get("label"):
+            label_counts[e["label"]] = label_counts.get(e["label"], 0) + 1
+    top_items = sorted(label_counts.items(), key=lambda x: x[1], reverse=True)[:10]
+
+    # Live activity feed (most recent 25)
+    feed = []
+    for e in sorted(events, key=lambda x: x.get("ts", ""), reverse=True)[:25]:
+        try:
+            t = datetime.datetime.fromisoformat(e["ts"])
+            when = t.strftime("%b %d, %I:%M:%S %p")
+        except Exception:
+            when = e.get("ts", "")
+        verb = {"view": "viewed", "click": "clicked", "heartbeat": "is on"}.get(e.get("type"), "visited")
+        what = e.get("label") or e.get("page") or "the site"
+        feed.append({
+            "device_type": e.get("device_type", "desktop"),
+            "text": f"{verb} {what}",
+            "when": when,
+        })
+
+    return {
+        "online": len(online_devices),
+        "online_phone": len(online_by_type["phone"]),
+        "online_desktop": len(online_by_type["desktop"]),
+        "online_tablet": len(online_by_type["tablet"]),
+        "visitors_today": visitors_today,
+        "avg_session": avg_session,
+        "top_items": top_items,
+        "feed": feed,
+    }
+
+
+# ── Search logging ────────────────────────────────────────────────────────────
+
+_SEARCH_RETENTION_DAYS = 30
+
+
+def _log_search(term):
+    term = (term or "").strip()
+    if not term:
+        return
+    now = datetime.datetime.now()
+    searches = db.read_list("searches")
+    cutoff = (now - datetime.timedelta(days=_SEARCH_RETENTION_DAYS)).isoformat()
+    searches = [s for s in searches if s.get("ts", "") >= cutoff]
+    searches.append({"id": uuid.uuid4().hex, "term": term[:80], "ts": now.isoformat()})
+    db.write_list("searches", searches)
+
+
+@app.route("/admin/searches")
+@admin_required
+def admin_searches():
+    searches = db.read_list("searches")
+
+    # Count full terms (case-insensitive)
+    counts = {}
+    for s in searches:
+        t = s.get("term", "").strip().lower()
+        if t:
+            counts[t] = counts.get(t, 0) + 1
+    top_terms = sorted(counts.items(), key=lambda x: x[1], reverse=True)[:50]
+
+    # Recent raw searches (most recent first) with readable time
+    recent = []
+    for s in sorted(searches, key=lambda x: x.get("ts", ""), reverse=True)[:100]:
+        try:
+            when = datetime.datetime.fromisoformat(s["ts"]).strftime("%b %d, %I:%M %p")
+        except Exception:
+            when = s.get("ts", "")
+        recent.append({"term": s.get("term", ""), "when": when})
+
+    return render_template("admin/searches.html",
+                           top_terms=top_terms, recent=recent, total=len(searches))
+
+
+@app.route("/api/admin/live-stats")
+@admin_required
+def api_live_stats():
+    return jsonify(_analytics_summary())
+
+
+@app.route("/admin/analytics")
+@admin_required
+def admin_analytics():
+    return render_template("admin/analytics.html", **_analytics_summary())
 
 
 @app.route("/admin/staff")

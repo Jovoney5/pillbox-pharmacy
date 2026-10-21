@@ -336,6 +336,8 @@
 
 {% block extra_js %}
 <script>
+// Tell the analytics tracker which product this page is
+window.__trackLabel = {{ product.name|tojson }};
 // ── Format toggle (books only) ──
 function selectFormat(type) {
     const physCard    = document.getElementById('fmt-physical');

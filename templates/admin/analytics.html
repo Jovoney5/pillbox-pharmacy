@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Analytics – Leeds Admin</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --purple: #7B2FBE; --purple-light: #9B59D0; --purple-dark: #561F87;
+            --purple-deep: #3A1060; --purple-pale: #F3E8FF;
+            --white: #fff; --gray-50: #faf9fc; --gray-100: #f2eef8;
+            --gray-200: #e4daf0; --gray-600: #5b5170; --gray-700: #3d3356;
+            --gray-900: #1a1230; --red: #dc2626; --green: #16a34a;
+            --shadow: 0 2px 8px rgba(90,30,150,0.10);
+            --shadow-lg: 0 8px 30px rgba(90,30,150,0.16);
+        }
+        body { font-family: 'Inter', sans-serif; background: var(--gray-50); color: var(--gray-900); }
+        a { text-decoration: none; color: inherit; }
+
+        .admin-layout { display: flex; min-height: 100vh; }
+        .sidebar {
+            width: 240px; flex-shrink: 0; background: var(--purple-deep); color: white;
+            padding: 24px 16px; position: sticky; top: 0; height: 100vh; overflow-y: auto;
+        }
+        .sidebar-logo { margin-bottom: 32px; }
+        .sidebar-logo img { height: 48px; border-radius: 6px; background: white; padding: 3px; }
+        .sidebar-logo p { font-size: 0.72rem; color: rgba(255,255,255,0.5); margin-top: 6px; }
+        .sidebar-nav a {
+            display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px;
+            font-size: 0.88rem; font-weight: 500; color: rgba(255,255,255,0.75);
+            margin-bottom: 4px; transition: background 0.15s, color 0.15s;
+        }
+        .sidebar-nav a:hover, .sidebar-nav a.active { background: rgba(255,255,255,0.12); color: white; }
+        .sidebar-nav .icon { font-size: 1rem; width: 20px; text-align: center; }
+        .sidebar-divider { border: none; border-top: 1px solid rgba(255,255,255,0.15); margin: 14px 0; }
+
+        .admin-main { flex: 1; padding: 28px 32px; }
+        .admin-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
+        .admin-header h1 { font-size: 1.5rem; font-weight: 800; }
+
+        /* LIVE badge */
+        .live-badge {
+            display: inline-flex; align-items: center; gap: 10px;
+            background: #fff; border: 1px solid var(--gray-200); border-radius: 30px;
+            padding: 8px 16px; box-shadow: var(--shadow); font-weight: 800; font-size: 1rem;
+        }
+        .live-dot {
+            width: 12px; height: 12px; border-radius: 50%; background: var(--green);
+            box-shadow: 0 0 0 0 rgba(22,163,74,0.6); animation: pulse 1.6s infinite;
+        }
+        @keyframes pulse {
+            0%   { box-shadow: 0 0 0 0 rgba(22,163,74,0.5); }
+            70%  { box-shadow: 0 0 0 10px rgba(22,163,74,0); }
+            100% { box-shadow: 0 0 0 0 rgba(22,163,74,0); }
+        }
+        .live-count { color: var(--green); }
+        .live-sub { color: var(--gray-600); font-weight: 600; font-size: 0.82rem; }
+
+        .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 16px; margin-bottom: 22px; }
+        .card { background: #fff; border-radius: 14px; box-shadow: var(--shadow); padding: 18px 20px; }
+        .card .label { font-size: 0.8rem; color: var(--gray-600); font-weight: 600; margin-bottom: 6px; }
+        .card .num { font-size: 1.9rem; font-weight: 800; }
+        .card .num small { font-size: 0.9rem; font-weight: 600; color: var(--gray-600); }
+        .dev-split { display: flex; gap: 14px; margin-top: 8px; font-size: 0.82rem; color: var(--gray-700); }
+        .dev-split b { color: var(--purple); }
+
+        .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+        @media (max-width: 900px) { .grid2 { grid-template-columns: 1fr; } }
+        .panel { background: #fff; border-radius: 14px; box-shadow: var(--shadow); padding: 20px; }
+        .panel h3 { font-size: 1.05rem; font-weight: 800; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+
+        .rank-row { display: flex; align-items: center; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--gray-100); }
+        .rank-row:last-child { border-bottom: none; }
+        .rank-num { width: 24px; height: 24px; border-radius: 50%; background: var(--purple-pale); color: var(--purple-dark); font-weight: 800; font-size: 0.78rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .rank-name { flex: 1; font-weight: 600; font-size: 0.88rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .rank-count { font-weight: 800; color: var(--purple); font-size: 0.9rem; }
+
+        .feed { max-height: 420px; overflow-y: auto; }
+        .feed-row { display: flex; align-items: flex-start; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--gray-100); }
+        .feed-row:last-child { border-bottom: none; }
+        .feed-ic { font-size: 1.1rem; flex-shrink: 0; }
+        .feed-body { flex: 1; min-width: 0; }
+        .feed-text { font-size: 0.86rem; font-weight: 600; }
+        .feed-when { font-size: 0.74rem; color: var(--gray-600); margin-top: 1px; }
+        .empty { color: var(--gray-600); font-size: 0.86rem; padding: 14px 0; text-align: center; }
+
+        @media (max-width: 760px) {
+            .sidebar { width: 64px; padding: 20px 8px; }
+            .sidebar-logo p, .sidebar-nav span { display: none; }
+            .admin-main { padding: 18px 14px; }
+        }
+    </style>
+</head>
+<body>
+<div class="admin-layout">
+    <aside class="sidebar">
+        <div class="sidebar-logo">
+            <img src="{{ url_for('static', filename='LEEDS.png') }}" alt="Leeds">
+            <p>Admin Panel</p>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="{{ url_for('admin_overview') }}"><span class="icon">📊</span><span>Overview</span></a>
+            <a href="{{ url_for('admin_dashboard') }}"><span class="icon">📦</span><span>Products</span></a>
+            <a href="{{ url_for('admin_add_product') }}"><span class="icon">➕</span><span>Add Product</span></a>
+            <a href="{{ url_for('admin_orders') }}"><span class="icon">📋</span><span>Orders</span></a>
+            <a href="{{ url_for('admin_stats') }}"><span class="icon">📈</span><span>Statistics</span></a>
+            <a href="{{ url_for('admin_analytics') }}" class="active"><span class="icon">🟢</span><span>Live Analytics</span></a>
+            <a href="{{ url_for('admin_staff') }}"><span class="icon">👥</span><span>Staff</span></a>
+            <a href="{{ url_for('admin_appointments') }}"><span class="icon">&#9723;</span><span>Appointments {% if pending_appts > 0 %}<span style="background:#dc2626;color:white;border-radius:10px;padding:1px 7px;font-size:0.68rem;font-weight:700;margin-left:4px;">{{ pending_appts }}</span>{% endif %}</span></a>
+            <a href="/admin/ads"><span class="icon">📢</span><span>Ad Manager</span></a>
+            <hr class="sidebar-divider">
+            <a href="{{ url_for('index') }}" target="_blank"><span class="icon">🏪</span><span>View Store</span></a>
+            <a href="{{ url_for('admin_logout') }}"><span class="icon">🚪</span><span>Logout</span></a>
+        </nav>
+    </aside>
+
+    <div class="admin-main">
+        <div class="admin-header">
+            <h1>🟢 Live Analytics</h1>
+            <div class="live-badge">
+                <span class="live-dot"></span>
+                <span><span class="live-count" id="onlineCount">{{ online }}</span> online now</span>
+            </div>
+        </div>
+
+        <div class="cards">
+            <div class="card">
+                <div class="label">Online Right Now</div>
+                <div class="num"><span id="cOnline">{{ online }}</span></div>
+                <div class="dev-split">
+                    <span>📱 <b id="cPhone">{{ online_phone }}</b></span>
+                    <span>💻 <b id="cDesktop">{{ online_desktop }}</b></span>
+                    <span>📲 <b id="cTablet">{{ online_tablet }}</b></span>
+                </div>
+            </div>
+            <div class="card">
+                <div class="label">Visitors Today</div>
+                <div class="num" id="cVisitors">{{ visitors_today }}</div>
+            </div>
+            <div class="card">
+                <div class="label">Avg. Session</div>
+                <div class="num" id="cSession">{{ avg_session }}<small>s</small></div>
+            </div>
+        </div>
+
+        <div class="grid2">
+            <div class="panel">
+                <h3>🔥 Most Viewed Products / Pages</h3>
+                <div id="topItems">
+                    {% if top_items %}
+                    {% for name, count in top_items %}
+                    <div class="rank-row">
+                        <span class="rank-num">{{ loop.index }}</span>
+                        <span class="rank-name">{{ name }}</span>
+                        <span class="rank-count">{{ count }}</span>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <div class="empty">No activity yet.</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="panel">
+                <h3>⚡ Live Activity Feed</h3>
+                <div class="feed" id="feed">
+                    {% if feed %}
+                    {% for f in feed %}
+                    <div class="feed-row">
+                        <span class="feed-ic">{{ '📱' if f.device_type == 'phone' else ('📲' if f.device_type == 'tablet' else '💻') }}</span>
+                        <div class="feed-body">
+                            <div class="feed-text">A {{ f.device_type }} {{ f.text }}</div>
+                            <div class="feed-when">{{ f.when }}</div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <div class="empty">Waiting for visitors…</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function devIcon(t) { return t === 'phone' ? '📱' : (t === 'tablet' ? '📲' : '💻'); }
+
+    function refresh() {
+        fetch('/api/admin/live-stats')
+            .then(r => r.json())
+            .then(d => {
+                // headline + cards
+                document.getElementById('onlineCount').textContent = d.online;
+                document.getElementById('cOnline').textContent   = d.online;
+                document.getElementById('cPhone').textContent    = d.online_phone;
+                document.getElementById('cDesktop').textContent  = d.online_desktop;
+                document.getElementById('cTablet').textContent   = d.online_tablet;
+                document.getElementById('cVisitors').textContent = d.visitors_today;
+                document.getElementById('cSession').innerHTML    = d.avg_session + '<small>s</small>';
+
+                // top items
+                const ti = document.getElementById('topItems');
+                ti.innerHTML = d.top_items.length
+                    ? d.top_items.map((row, i) =>
+                        `<div class="rank-row"><span class="rank-num">${i + 1}</span>
+                         <span class="rank-name">${row[0]}</span>
+                         <span class="rank-count">${row[1]}</span></div>`).join('')
+                    : '<div class="empty">No activity yet.</div>';
+
+                // feed
+                const fe = document.getElementById('feed');
+                fe.innerHTML = d.feed.length
+                    ? d.feed.map(f =>
+                        `<div class="feed-row"><span class="feed-ic">${devIcon(f.device_type)}</span>
+                         <div class="feed-body"><div class="feed-text">A ${f.device_type} ${f.text}</div>
+                         <div class="feed-when">${f.when}</div></div></div>`).join('')
+                    : '<div class="empty">Waiting for visitors…</div>';
+            })
+            .catch(() => {});
+    }
+    // Poll every 3s — updates in place, no page reload
+    setInterval(refresh, 3000);
+</script>
+</body>
+</html>

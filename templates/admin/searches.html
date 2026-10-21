@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Searches – Leeds Admin</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --purple: #7B2FBE; --purple-light: #9B59D0; --purple-dark: #561F87;
+            --purple-deep: #3A1060; --purple-pale: #F3E8FF;
+            --white: #fff; --gray-50: #faf9fc; --gray-100: #f2eef8;
+            --gray-200: #e4daf0; --gray-600: #5b5170; --gray-700: #3d3356;
+            --gray-900: #1a1230; --red: #dc2626; --green: #16a34a;
+            --shadow: 0 2px 8px rgba(90,30,150,0.10);
+        }
+        body { font-family: 'Inter', sans-serif; background: var(--gray-50); color: var(--gray-900); }
+        a { text-decoration: none; color: inherit; }
+        .admin-layout { display: flex; min-height: 100vh; }
+        .sidebar {
+            width: 240px; flex-shrink: 0; background: var(--purple-deep); color: white;
+            padding: 24px 16px; position: sticky; top: 0; height: 100vh; overflow-y: auto;
+        }
+        .sidebar-logo { margin-bottom: 32px; }
+        .sidebar-logo img { height: 48px; border-radius: 6px; background: white; padding: 3px; }
+        .sidebar-logo p { font-size: 0.72rem; color: rgba(255,255,255,0.5); margin-top: 6px; }
+        .sidebar-nav a {
+            display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px;
+            font-size: 0.88rem; font-weight: 500; color: rgba(255,255,255,0.75);
+            margin-bottom: 4px; transition: background 0.15s, color 0.15s;
+        }
+        .sidebar-nav a:hover, .sidebar-nav a.active { background: rgba(255,255,255,0.12); color: white; }
+        .sidebar-nav .icon { font-size: 1rem; width: 20px; text-align: center; }
+        .sidebar-divider { border: none; border-top: 1px solid rgba(255,255,255,0.15); margin: 14px 0; }
+
+        .admin-main { flex: 1; padding: 28px 32px; }
+        .admin-header h1 { font-size: 1.5rem; font-weight: 800; margin-bottom: 4px; }
+        .admin-header p { color: var(--gray-600); font-size: 0.88rem; margin-bottom: 24px; }
+
+        .grid2 { display: grid; grid-template-columns: 1.1fr 1fr; gap: 18px; }
+        @media (max-width: 900px) { .grid2 { grid-template-columns: 1fr; } }
+        .panel { background: #fff; border-radius: 14px; box-shadow: var(--shadow); padding: 20px; }
+        .panel h3 { font-size: 1.05rem; font-weight: 800; margin-bottom: 14px; }
+
+        .term-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--gray-100); }
+        .term-row:last-child { border-bottom: none; }
+        .term-rank { width: 26px; height: 26px; border-radius: 50%; background: var(--purple-pale); color: var(--purple-dark); font-weight: 800; font-size: 0.78rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .term-word { flex: 1; font-weight: 700; font-size: 0.92rem; text-transform: lowercase; }
+        .term-bar { flex: 2; height: 8px; background: var(--gray-100); border-radius: 5px; overflow: hidden; }
+        .term-bar span { display: block; height: 100%; background: var(--purple); border-radius: 5px; }
+        .term-count { font-weight: 800; color: var(--purple); font-size: 0.9rem; min-width: 28px; text-align: right; }
+
+        .recent { max-height: 560px; overflow-y: auto; }
+        .recent-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--gray-100); }
+        .recent-row:last-child { border-bottom: none; }
+        .recent-term { font-weight: 600; font-size: 0.88rem; }
+        .recent-term .q { color: var(--gray-600); }
+        .recent-when { font-size: 0.74rem; color: var(--gray-600); white-space: nowrap; }
+        .empty { color: var(--gray-600); font-size: 0.88rem; padding: 16px 0; text-align: center; }
+
+        @media (max-width: 760px) {
+            .sidebar { width: 64px; padding: 20px 8px; }
+            .sidebar-logo p, .sidebar-nav span { display: none; }
+            .admin-main { padding: 18px 14px; }
+        }
+    </style>
+</head>
+<body>
+<div class="admin-layout">
+    <aside class="sidebar">
+        <div class="sidebar-logo">
+            <img src="{{ url_for('static', filename='LEEDS.png') }}" alt="Leeds">
+            <p>Admin Panel</p>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="{{ url_for('admin_overview') }}"><span class="icon">📊</span><span>Overview</span></a>
+            <a href="{{ url_for('admin_dashboard') }}"><span class="icon">📦</span><span>Products</span></a>
+            <a href="{{ url_for('admin_add_product') }}"><span class="icon">➕</span><span>Add Product</span></a>
+            <a href="{{ url_for('admin_orders') }}"><span class="icon">📋</span><span>Orders</span></a>
+            <a href="{{ url_for('admin_stats') }}"><span class="icon">📈</span><span>Statistics</span></a>
+            <a href="{{ url_for('admin_analytics') }}"><span class="icon">🟢</span><span>Live Analytics</span></a>
+            <a href="{{ url_for('admin_searches') }}" class="active"><span class="icon">🔎</span><span>User Searches</span></a>
+            <a href="{{ url_for('admin_staff') }}"><span class="icon">👥</span><span>Staff</span></a>
+            <a href="{{ url_for('admin_appointments') }}"><span class="icon">&#9723;</span><span>Appointments {% if pending_appts > 0 %}<span style="background:#dc2626;color:white;border-radius:10px;padding:1px 7px;font-size:0.68rem;font-weight:700;margin-left:4px;">{{ pending_appts }}</span>{% endif %}</span></a>
+            <a href="/admin/ads"><span class="icon">📢</span><span>Ad Manager</span></a>
+            <hr class="sidebar-divider">
+            <a href="{{ url_for('index') }}" target="_blank"><span class="icon">🏪</span><span>View Store</span></a>
+            <a href="{{ url_for('admin_logout') }}"><span class="icon">🚪</span><span>Logout</span></a>
+        </nav>
+    </aside>
+
+    <div class="admin-main">
+        <div class="admin-header">
+            <h1>🔎 User Searches</h1>
+            <p>What customers type into search — including partial words — so you can see what they really want. {{ total }} searches logged (last 30 days).</p>
+        </div>
+
+        <div class="grid2">
+            <div class="panel">
+                <h3>🔥 Top Search Terms</h3>
+                {% if top_terms %}
+                {% set max_count = top_terms[0][1] %}
+                {% for term, count in top_terms %}
+                <div class="term-row">
+                    <span class="term-rank">{{ loop.index }}</span>
+                    <span class="term-word">{{ term }}</span>
+                    <span class="term-bar"><span style="width: {{ (count / max_count * 100)|round }}%;"></span></span>
+                    <span class="term-count">{{ count }}</span>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="empty">No searches yet. Once customers start searching, their terms appear here.</div>
+                {% endif %}
+            </div>
+
+            <div class="panel">
+                <h3>🕐 Recent Searches</h3>
+                <div class="recent">
+                    {% if recent %}
+                    {% for r in recent %}
+                    <div class="recent-row">
+                        <span class="recent-term">🔍 <span class="q">"{{ r.term }}"</span></span>
+                        <span class="recent-when">{{ r.when }}</span>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <div class="empty">No searches yet.</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

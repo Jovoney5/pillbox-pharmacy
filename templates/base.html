@@ -975,5 +975,32 @@
 </script>
 
 {% block extra_js %}{% endblock %}
+
+<!-- ========== VISITOR ANALYTICS TRACKER ========== -->
+<script>
+    (function() {
+        // Anonymous per-device id (persists across visits on this device)
+        let did = localStorage.getItem('leeds_did');
+        if (!did) { did = (Date.now().toString(36) + Math.random().toString(36).slice(2, 8)); localStorage.setItem('leeds_did', did); }
+
+        function track(type, label) {
+            try {
+                navigator.sendBeacon
+                    ? navigator.sendBeacon('/api/track', new Blob([JSON.stringify({
+                          device: did, type: type, page: location.pathname, label: label || window.__trackLabel || ''
+                      })], { type: 'application/json' }))
+                    : fetch('/api/track', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ device: did, type: type, page: location.pathname, label: label || window.__trackLabel || '' }), keepalive: true });
+            } catch (e) {}
+        }
+
+        // Page view on load
+        track('view');
+        // Heartbeat while the tab is open & visible → powers "online now" + session time
+        setInterval(function() { if (!document.hidden) track('heartbeat'); }, 20000);
+        // Expose so individual elements can log clicks
+        window.trackClick = function(label) { track('click', label); };
+    })();
+</script>
 </body>
 </html>
