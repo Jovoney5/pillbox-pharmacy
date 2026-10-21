@@ -1092,6 +1092,79 @@ def admin_delete_product(product_id):
     return redirect(url_for("admin_dashboard"))
 
 
+# ── QR photo upload ───────────────────────────────────────────────────────────
+import hashlib
+import hmac
+
+
+def _qr_token(product_id):
+    """Signed token so the QR upload link for a product can't be forged."""
+    msg = f"qrupload:{product_id}".encode()
+    return hmac.new(app.secret_key.encode(), msg, hashlib.sha256).hexdigest()[:20]
+
+
+def _qr_token_valid(product_id, token):
+    return hmac.compare_digest(_qr_token(product_id), token or "")
+
+
+@app.route("/admin/product/<int:product_id>/qr")
+@admin_required
+def admin_product_qr(product_id):
+    """Return the public upload URL + product name for the QR popup."""
+    products = get_products()
+    prod = next((p for p in products if p["id"] == product_id), None)
+    if not prod:
+        return jsonify({"success": False}), 404
+    token = _qr_token(product_id)
+    path = url_for("qr_upload", product_id=product_id, token=token)
+    url = (PUBLIC_BASE_URL + path) if PUBLIC_BASE_URL else request.url_root.rstrip("/") + path
+    return jsonify({"success": True, "url": url, "name": prod["name"]})
+
+
+@app.route("/qr-upload/<int:product_id>", methods=["GET"])
+def qr_upload(product_id):
+    """Phone-friendly page reached by scanning the QR. Tokened, no admin login needed."""
+    token = request.args.get("token", "")
+    if not _qr_token_valid(product_id, token):
+        return "Invalid or expired link.", 403
+    products = get_products()
+    prod = next((p for p in products if p["id"] == product_id), None)
+    if not prod:
+        return "Product not found.", 404
+    return render_template("admin/qr_upload.html", product=prod, token=token)
+
+
+@app.route("/qr-upload/<int:product_id>", methods=["POST"])
+def qr_upload_save(product_id):
+    """Receive photos from the phone and append them to the product."""
+    token = request.form.get("token", "") or request.args.get("token", "")
+    if not _qr_token_valid(product_id, token):
+        return jsonify({"success": False, "message": "Invalid link."}), 403
+    products = load_products()
+    prod = next((p for p in products if p["id"] == product_id), None)
+    if not prod:
+        return jsonify({"success": False, "message": "Product not found."}), 404
+
+    files = request.files.getlist("photos")
+    images = list(prod.get("images") or ([prod["img"]] if prod.get("img") else []))
+    saved = 0
+    for file in files:
+        if not file or file.filename == "" or not allowed_file(file.filename):
+            continue
+        ext = file.filename.rsplit(".", 1)[1].lower()
+        filename = f"product_{product_id}_qr_{uuid.uuid4().hex[:8]}.{ext}"
+        file.save(os.path.join(UPLOAD_FOLDER, filename))
+        images.append(url_for("static", filename=f"uploads/{filename}", _external=False))
+        saved += 1
+
+    if saved:
+        prod["images"] = images
+        if not prod.get("img"):
+            prod["img"] = images[0]
+        save_products(products)
+    return jsonify({"success": True, "added": saved, "total": len(images)})
+
+
 @app.route("/admin/product/discount/<int:product_id>", methods=["POST"])
 @admin_required
 def admin_set_discount(product_id):

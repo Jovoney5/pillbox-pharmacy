@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Photos — {{ product.name }}</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        :root { --purple: #7B2FBE; --purple-dark: #561F87; --green: #16a34a; --gray: #6b7280; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f2eef8; color: #1a1230; padding: 20px; }
+        .wrap { max-width: 440px; margin: 0 auto; }
+        .head { background: linear-gradient(135deg, var(--purple-dark), var(--purple)); color: #fff; border-radius: 16px; padding: 22px; margin-bottom: 18px; }
+        .head h1 { font-size: 1.2rem; margin-bottom: 4px; }
+        .head p { font-size: 0.85rem; opacity: 0.9; }
+        .card { background: #fff; border-radius: 16px; padding: 20px; box-shadow: 0 2px 10px rgba(30,20,60,.1); }
+        .pick {
+            display: block; width: 100%; text-align: center;
+            background: var(--purple); color: #fff; border: none; border-radius: 12px;
+            padding: 16px; font-size: 1rem; font-weight: 700; cursor: pointer; margin-bottom: 14px;
+        }
+        .pick.secondary { background: #fff; color: var(--purple); border: 2px solid var(--purple); }
+        #fileInput, #camInput { display: none; }
+        .preview { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 14px 0; }
+        .preview img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 10px; }
+        .send {
+            display: block; width: 100%; background: var(--green); color: #fff; border: none;
+            border-radius: 12px; padding: 16px; font-size: 1.05rem; font-weight: 800; cursor: pointer;
+        }
+        .send:disabled { opacity: 0.5; }
+        .msg { text-align: center; font-weight: 700; margin-top: 14px; min-height: 22px; }
+        .msg.ok { color: var(--green); }
+        .msg.err { color: #dc2626; }
+        .existing { font-size: 0.78rem; color: var(--gray); margin-top: 6px; }
+    </style>
+</head>
+<body>
+<div class="wrap">
+    <div class="head">
+        <h1>📷 Add Photos</h1>
+        <p>{{ product.name }}</p>
+    </div>
+    <div class="card">
+        <input type="file" id="camInput" accept="image/*" capture="environment" multiple onchange="addFiles(this.files)">
+        <input type="file" id="fileInput" accept="image/*" multiple onchange="addFiles(this.files)">
+
+        <button class="pick" onclick="document.getElementById('camInput').click()">📸 Take Photo</button>
+        <button class="pick secondary" onclick="document.getElementById('fileInput').click()">🖼️ Choose from Gallery</button>
+
+        <div class="preview" id="preview"></div>
+
+        <button class="send" id="sendBtn" onclick="upload()" disabled>Upload Photos</button>
+        <div class="msg" id="msg"></div>
+        <div class="existing">{{ (product.images|length) if product.images else 0 }} photo(s) currently on this product.</div>
+    </div>
+</div>
+
+<script>
+    const productId = {{ product.id }};
+    const token = "{{ token }}";
+    let files = [];
+
+    function addFiles(list) {
+        for (const f of list) files.push(f);
+        render();
+    }
+    function render() {
+        const box = document.getElementById('preview');
+        box.innerHTML = '';
+        files.forEach(f => {
+            const img = document.createElement('img');
+            img.src = URL.createObjectURL(f);
+            box.appendChild(img);
+        });
+        document.getElementById('sendBtn').disabled = files.length === 0;
+        document.getElementById('sendBtn').textContent =
+            files.length ? `Upload ${files.length} Photo${files.length > 1 ? 's' : ''}` : 'Upload Photos';
+    }
+    function upload() {
+        const btn = document.getElementById('sendBtn');
+        const msg = document.getElementById('msg');
+        btn.disabled = true; btn.textContent = 'Uploading…'; msg.textContent = '';
+        const fd = new FormData();
+        fd.append('token', token);
+        files.forEach(f => fd.append('photos', f));
+        fetch(`/qr-upload/${productId}`, { method: 'POST', body: fd })
+            .then(r => r.json())
+            .then(d => {
+                if (d.success) {
+                    msg.className = 'msg ok';
+                    msg.textContent = `✓ Added ${d.added} photo(s)! You can close this page.`;
+                    files = []; render();
+                    btn.textContent = 'Add More';
+                    btn.disabled = false;
+                } else {
+                    msg.className = 'msg err';
+                    msg.textContent = d.message || 'Upload failed.';
+                    btn.disabled = false; btn.textContent = 'Try Again';
+                }
+            })
+            .catch(() => { msg.className = 'msg err'; msg.textContent = 'Network error.'; btn.disabled = false; btn.textContent = 'Try Again'; });
+    }
+</script>
+</body>
+</html>
