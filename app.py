@@ -1360,21 +1360,29 @@ def _analytics_summary():
             label_counts[e["label"]] = label_counts.get(e["label"], 0) + 1
     top_items = sorted(label_counts.items(), key=lambda x: x[1], reverse=True)[:10]
 
-    # Live activity feed (most recent 25)
+    # Live activity feed — real actions only (skip heartbeats), and collapse
+    # consecutive duplicates per device so we log each action once, not repeatedly.
     feed = []
-    for e in sorted(events, key=lambda x: x.get("ts", ""), reverse=True)[:25]:
+    last_per_device = {}   # device -> last (verb, what) we logged
+    for e in sorted(events, key=lambda x: x.get("ts", "")):   # chronological
+        if e.get("type") == "heartbeat":
+            continue
+        verb = {"view": "viewed", "click": "clicked"}.get(e.get("type"), "visited")
+        what = e.get("label") or e.get("page") or "the site"
+        key = (verb, what)
+        if last_per_device.get(e["device"]) == key:
+            continue   # same device doing the same thing — don't repeat
+        last_per_device[e["device"]] = key
         try:
-            t = datetime.datetime.fromisoformat(e["ts"])
-            when = t.strftime("%b %d, %I:%M:%S %p")
+            when = datetime.datetime.fromisoformat(e["ts"]).strftime("%b %d, %I:%M:%S %p")
         except Exception:
             when = e.get("ts", "")
-        verb = {"view": "viewed", "click": "clicked", "heartbeat": "is on"}.get(e.get("type"), "visited")
-        what = e.get("label") or e.get("page") or "the site"
         feed.append({
             "device_type": e.get("device_type", "desktop"),
             "text": f"{verb} {what}",
             "when": when,
         })
+    feed = list(reversed(feed))[:25]   # most recent first, cap at 25
 
     return {
         "online": len(online_devices),
