@@ -444,10 +444,15 @@ def index():
         if match:
             cat_images[key] = match
 
-    active_ads = get_active_ads()
+    # ── Deals row: any product the admin has discounted ────────────────────
+    deals = sorted(
+        (p for p in products if p.get("discount", 0) > 0),
+        key=lambda p: p["discount"], reverse=True
+    )[:8]
+
     return render_template("index.html", featured=featured, categories=CATEGORIES,
                            cat_images=cat_images, personalised=personalised,
-                           active_ads=active_ads)
+                           deals=deals)
 
 
 @app.route("/shop")
@@ -742,7 +747,7 @@ def admin_login():
         admin = next((s for s in staff if s["username"] == username and s.get("password") == password
                       and password and s["role"] == "admin" and s.get("status", "active") == "active"), None)
         # Fallback: also check legacy hardcoded credentials
-        if admin or (username == "admin" and password == "pillbox"):
+        if admin or (username == "MORGAN" and password == "NEVER"):
             session["is_admin"] = True
             flash("Welcome back, Admin!", "success")
             return redirect(url_for("admin_overview"))

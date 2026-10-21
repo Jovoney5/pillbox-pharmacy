@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}The PillBox Pharmacy Ltd. & Book Store{% endblock %}</title>
+    <title>{% block title %}Leeds Pharmacy {% endblock %}</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -703,6 +703,62 @@
         .footer-bottom { max-width: 1200px; margin: 16px auto 0; text-align: center; font-size: 0.82rem; color: rgba(255,255,255,0.5); }
 
         /* ════════════════════════════════════════
+           MOBILE BOTTOM APP NAV
+        ════════════════════════════════════════ */
+        .bottom-nav { display: none; }
+        .bottom-nav {
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            z-index: 400;
+            background: var(--white);
+            border-top: 1px solid var(--gray-200);
+            box-shadow: 0 -2px 14px rgba(90,30,150,0.12);
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        .bottom-nav-inner {
+            display: flex;
+            align-items: stretch;
+            justify-content: space-around;
+        }
+        .bottom-nav-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            padding: 8px 4px;
+            color: var(--gray-600);
+            font-size: 0.68rem;
+            font-weight: 600;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-family: inherit;
+            position: relative;
+            transition: color 0.15s;
+        }
+        .bottom-nav-item .bn-icon { font-size: 1.35rem; line-height: 1; }
+        .bottom-nav-item.active { color: var(--purple); }
+        .bottom-nav-item:hover { color: var(--purple); }
+        .bottom-nav-badge {
+            position: absolute;
+            top: 4px;
+            right: 50%;
+            transform: translateX(16px);
+            background: var(--red);
+            color: #fff;
+            border-radius: 50%;
+            min-width: 17px; height: 17px;
+            padding: 0 4px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.62rem;
+            font-weight: 700;
+        }
+
+        /* ════════════════════════════════════════
            RESPONSIVE
         ════════════════════════════════════════ */
         @media (max-width: 900px) {
@@ -712,6 +768,9 @@
         }
         @media (max-width: 600px) {
             .btn-register, .btn-signin { display: none; }
+            .bottom-nav { display: block; }
+            /* keep footer/content clear of the fixed bar */
+            body { padding-bottom: 62px; }
         }
     </style>
     {% block extra_css %}{% endblock %}
@@ -721,13 +780,11 @@
 <!-- ══ TOP BAR ══ -->
 <div class="top-bar">
     <div class="top-bar-inner">
-        <span>The PillBox Pharmacy Ltd. &amp; Book Store — Serving Jamaica</span>
+        <span>Leeds Pharmacy </span>
         <div class="top-bar-right">
             <a href="{{ url_for('contact') }}">📞 (876) 555-1234</a>
             {% if is_admin %}
             <a href="{{ url_for('admin_dashboard') }}" class="admin-link">⚙️ Admin Dashboard</a>
-            {% else %}
-            <a href="{{ url_for('admin_login') }}" class="admin-link">⚙️ Admin</a>
             {% endif %}
         </div>
     </div>
@@ -740,7 +797,7 @@
         <!-- Brand: Logo + Location -->
         <div class="nav-brand">
             <a href="{{ url_for('index') }}" class="nav-logo-link">
-                <img src="{{ url_for('static', filename='screen.png') }}" alt="The PillBox Pharmacy">
+                <img src="{{ url_for('static', filename='screen.png') }}" alt="Leeds Pharmacy">
             </a>
             <div class="nav-location" id="locationBtn" onclick="toggleLocation(event)">
                 <span class="nav-location-pin">📍</span>
@@ -917,7 +974,7 @@
 <footer>
     <div class="footer-inner">
         <div class="footer-col">
-            <h4>The PillBox Pharmacy Ltd.</h4>
+            <h4>Leeds Pharmacy</h4>
             <p>Your trusted neighbourhood pharmacy &amp; bookstore for health, wellness, books, and everyday essentials.</p>
         </div>
         <div class="footer-col">
@@ -939,14 +996,35 @@
             <h4>Contact</h4>
             <p>📍 Savanna-la-mar, Westmoreland, Jamaica</p>
             <p>📞 (876) 555-1234</p>
-            <p>📧 hello@pillboxpharmacy.com</p>
+            <p>📧 hello@leedspharmacy.com</p>
             <p>🕐 Mon–Sat: 8am – 9pm</p>
         </div>
     </div>
     <div class="footer-bottom">
-        &copy; 2024 The PillBox Pharmacy Ltd. &amp; Book Store. All rights reserved.
+        &copy; 2026 Leeds Pharmacy &amp; Book Store. All rights reserved.
     </div>
 </footer>
+
+<!-- ══ MOBILE BOTTOM APP NAV ══ -->
+<nav class="bottom-nav">
+    <div class="bottom-nav-inner">
+        <a href="{{ url_for('index') }}"
+           class="bottom-nav-item {{ 'active' if request.endpoint == 'index' else '' }}">
+            <span class="bn-icon">🏠</span>
+            <span>Home</span>
+        </a>
+        <a href="{{ url_for('cart') }}"
+           class="bottom-nav-item {{ 'active' if request.endpoint == 'cart' else '' }}">
+            <span class="bn-icon">🛒</span>
+            {% if cart_count > 0 %}<span class="bottom-nav-badge">{{ cart_count }}</span>{% endif %}
+            <span>Cart</span>
+        </a>
+        <a href="tel:+18765551234" class="bottom-nav-item">
+            <span class="bn-icon">📞</span>
+            <span>Call Us</span>
+        </a>
+    </div>
+</nav>
 
 <!-- ══ APPOINTMENT MODAL ══ -->
 <div class="appt-overlay" id="apptOverlay" onclick="closeScheduler(event)">
