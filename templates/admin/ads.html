@@ -198,7 +198,7 @@
         <!-- ── CURRENTLY RUNNING ADS ── -->
         <div class="section-heading">
             Currently Running
-            <span class="badge">{{ active_ads|length }} / 3</span>
+            <span class="badge">{{ active_ads|length }} running</span>
         </div>
 
         {% if active_ads %}
@@ -269,7 +269,8 @@
                     <td class="price-col">
                         JMD {{ "%.2f"|format(p.effective_price) }}
                         {% if p.discount > 0 %}
-                        <br><span style="font-size:0.72rem;text-decoration:line-through;color:var(--gray-600);font-weight:400;">{{ "%.2f"|format(p.original_price) }}</span>
+                        <span style="background:#dcfce7;color:var(--green);border-radius:8px;padding:1px 7px;font-size:0.7rem;font-weight:700;margin-left:4px;">-{{ p.discount }}% OFF</span>
+                        <br><span style="font-size:0.72rem;text-decoration:line-through;color:var(--gray-600);font-weight:400;">JMD {{ "%.2f"|format(p.original_price) }}</span>
                         {% endif %}
                     </td>
                     <td>

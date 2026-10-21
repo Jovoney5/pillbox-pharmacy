@@ -175,8 +175,11 @@ def load_ads():
 def save_ads(ads):
     db.write_list("ads", ads)
 
+# How many ads can run simultaneously (effectively unlimited for the shop's needs).
+MAX_ACTIVE_ADS = 50
+
 def get_active_ads():
-    """Return up to 3 ads whose expiry hasn't passed, with full product data attached."""
+    """Return all ads whose expiry hasn't passed, with full product data attached."""
     ads = load_ads()
     products = get_products()
     now = datetime.datetime.now().isoformat()
@@ -186,7 +189,7 @@ def get_active_ads():
             prod = next((p for p in products if p["id"] == ad["product_id"]), None)
             if prod:
                 active.append({"ad": ad, "product": prod})
-    return active[:3]
+    return active[:MAX_ACTIVE_ADS]
 
 def gen_code():
     """Generate 6-char confirmation code like PB4821."""
@@ -1389,11 +1392,11 @@ def admin_set_ad():
     ads = load_ads()
     # Remove any existing ad for this product
     ads = [a for a in ads if a["product_id"] != product_id]
-    # Check max 3
+    # Allow many ads to run at once
     now = datetime.datetime.now()
     active = [a for a in ads if a.get("expires_at", "") > now.isoformat()]
-    if len(active) >= 3:
-        return jsonify({"success": False, "message": "Maximum 3 ads already running. Remove one first."}), 400
+    if len(active) >= MAX_ACTIVE_ADS:
+        return jsonify({"success": False, "message": f"Maximum {MAX_ACTIVE_ADS} ads already running. Remove one first."}), 400
     expires_at = (now + datetime.timedelta(seconds=seconds)).isoformat()
     ads.append({
         "product_id": product_id,
