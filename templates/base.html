@@ -38,6 +38,69 @@
         ul  { list-style: none; }
         img { max-width: 100%; display: block; }
 
+        /* ========== WELCOME / AUTH SCREEN ========== */
+        #welcome {
+            position: fixed; inset: 0; z-index: 9999;
+            background: linear-gradient(160deg, var(--purple-deep), var(--purple));
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            padding: 24px; opacity: 1; transition: opacity 0.4s ease;
+        }
+        #welcome.hide { opacity: 0; pointer-events: none; }
+        body.welcome-lock { overflow: hidden; }
+        .welcome-logo { width: 280px; max-width: 78%; margin-bottom: 14px; }
+        .welcome-tagline { color: rgba(255,255,255,0.85); font-size: 0.9rem; font-weight: 600; margin-bottom: 34px; text-align: center; }
+
+        .welcome-card {
+            background: #fff; border-radius: 18px; width: 100%; max-width: 360px;
+            padding: 24px 22px; box-shadow: var(--shadow-lg);
+        }
+        .welcome-card h2 { font-size: 1.25rem; font-weight: 800; text-align: center; margin-bottom: 4px; }
+        .welcome-card .sub { text-align: center; color: var(--gray-600); font-size: 0.85rem; margin-bottom: 20px; }
+
+        .wbtn {
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            width: 100%; padding: 13px; border-radius: 11px; font-size: 0.95rem; font-weight: 700;
+            cursor: pointer; font-family: inherit; border: none; margin-bottom: 11px;
+        }
+        .wbtn-primary { background: var(--purple); color: #fff; }
+        .wbtn-primary:hover { background: var(--purple-light); }
+        .wbtn-outline { background: #fff; color: var(--purple); border: 2px solid var(--purple); }
+        .wbtn-outline:hover { background: var(--purple-pale); }
+        .wbtn-ghost { background: none; color: var(--gray-600); font-weight: 600; }
+        .wbtn-ghost:hover { color: var(--purple-dark); }
+
+        .auth-field { margin-bottom: 14px; }
+        .auth-field label { display: block; font-size: 0.74rem; font-weight: 700; color: var(--gray-700); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 5px; }
+        .auth-field input {
+            width: 100%; padding: 12px 14px; border: 1.5px solid var(--gray-200); border-radius: 11px;
+            font-size: 1rem; font-family: inherit; outline: none;
+        }
+        .auth-field input:focus { border-color: var(--purple); }
+        .auth-back { background: none; border: none; color: var(--gray-600); font-weight: 700; cursor: pointer; font-family: inherit; font-size: 0.85rem; margin-bottom: 10px; }
+        .auth-msg { font-size: 0.82rem; font-weight: 600; margin-top: 2px; min-height: 18px; }
+        .auth-msg.error { color: var(--red); }
+        .auth-msg.ok    { color: var(--green); }
+
+        /* PIN display dots */
+        .pin-dots { display: flex; justify-content: center; gap: 14px; margin: 10px 0 18px; }
+        .pin-dot { width: 15px; height: 15px; border-radius: 50%; border: 2px solid var(--purple); transition: background 0.15s; }
+        .pin-dot.filled { background: var(--purple); }
+        .pin-title { text-align: center; font-weight: 800; font-size: 1.1rem; margin-bottom: 2px; }
+        .pin-sub   { text-align: center; color: var(--gray-600); font-size: 0.82rem; margin-bottom: 8px; }
+
+        /* PIN keypad */
+        .pin-pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .pin-key {
+            padding: 16px 0; border-radius: 12px; border: none; cursor: pointer;
+            background: var(--gray-100); color: var(--gray-900);
+            font-size: 1.35rem; font-weight: 700; font-family: inherit;
+            transition: background 0.12s, transform 0.08s;
+        }
+        .pin-key:hover { background: var(--purple-pale); }
+        .pin-key:active { transform: scale(0.94); background: var(--purple); color: #fff; }
+        .pin-key.key-action { background: none; font-size: 0.95rem; font-weight: 700; color: var(--purple); }
+        .pin-key.key-action:active { background: none; color: var(--purple-dark); transform: none; }
+
         /* ========== HEADER ========== */
         .site-header {
             background: var(--purple);
@@ -56,7 +119,7 @@
             gap: 12px;
         }
         .brand { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 1.1rem; white-space: nowrap; }
-        .brand img { height: 36px; width: auto; }
+        .brand img { height: 80px; width: auto; }
 
         .header-search { flex: 1; min-width: 0; }
         .header-search form { display: flex; }
@@ -309,7 +372,7 @@
         @media (max-width: 760px) {
             .sub-nav { display: none; }
             .header-desktop-only { display: none; }   /* hide sign-in/appointment text buttons on phone */
-            .brand span { display: none; }            /* logo only on phone */
+            .brand img { height: 64px; }              /* slightly smaller on phones */
             .bottom-nav { display: flex; }
             body { padding-bottom: 60px; }            /* clear the fixed bar */
         }
@@ -317,14 +380,223 @@
         {% block extra_css %}{% endblock %}
     </style>
 </head>
-<body>
+<body{% if not current_user %} class="welcome-lock"{% endif %}>
+
+{% if not current_user %}
+<!-- ========== WELCOME / AUTH SCREEN ========== -->
+<div id="welcome">
+    <img class="welcome-logo" src="{{ url_for('static', filename='LEEDS.png') }}" alt="Leeds Pharmacy">
+    <div class="welcome-tagline">Your neighbourhood pharmacy &amp; bookstore</div>
+
+    <div class="welcome-card">
+        <!-- STEP: choose -->
+        <div id="authChoose">
+            <h2>Welcome 👋</h2>
+            <div class="sub">Sign in, create an account, or just browse.</div>
+            <button class="wbtn wbtn-primary" onclick="authShow('signin')">🔑 Sign In</button>
+            <button class="wbtn wbtn-outline" onclick="authShow('signup')">✨ Create Account</button>
+            <button class="wbtn wbtn-ghost" onclick="browseAsGuest()">Browse as Guest →</button>
+        </div>
+
+        <!-- STEP: sign in (phone) -->
+        <div id="authSignin" style="display:none;">
+            <button class="auth-back" onclick="authShow('choose')">← Back</button>
+            <h2>Sign In</h2>
+            <div class="sub">Enter your phone number</div>
+            <div class="auth-field">
+                <label>Phone Number</label>
+                <input type="tel" id="signinPhone" inputmode="numeric" placeholder="(876) 000-0000">
+            </div>
+            <div class="auth-msg error" id="signinMsg"></div>
+            <button class="wbtn wbtn-primary" onclick="signinStart()">Continue</button>
+        </div>
+
+        <!-- STEP: sign up (name + phone) -->
+        <div id="authSignup" style="display:none;">
+            <button class="auth-back" onclick="authShow('choose')">← Back</button>
+            <h2>Create Account</h2>
+            <div class="sub">A few details to get started</div>
+            <div class="auth-field">
+                <label>Full Name</label>
+                <input type="text" id="signupName" placeholder="Jane Brown">
+            </div>
+            <div class="auth-field">
+                <label>Phone Number</label>
+                <input type="tel" id="signupPhone" inputmode="numeric" placeholder="(876) 000-0000">
+            </div>
+            <div class="auth-msg error" id="signupMsg"></div>
+            <button class="wbtn wbtn-primary" onclick="signupStart()">Set a PIN →</button>
+        </div>
+
+        <!-- STEP: PIN pad -->
+        <div id="authPin" style="display:none;">
+            <button class="auth-back" onclick="pinBack()">← Back</button>
+            <div class="pin-title" id="pinTitle">Enter your PIN</div>
+            <div class="pin-sub" id="pinSub">4-digit PIN</div>
+            <div class="pin-dots" id="pinDots">
+                <span class="pin-dot"></span><span class="pin-dot"></span>
+                <span class="pin-dot"></span><span class="pin-dot"></span>
+            </div>
+            <div class="auth-msg error" id="pinMsg" style="text-align:center;"></div>
+            <div class="pin-pad">
+                <button class="pin-key" onclick="pinPress('1')">1</button>
+                <button class="pin-key" onclick="pinPress('2')">2</button>
+                <button class="pin-key" onclick="pinPress('3')">3</button>
+                <button class="pin-key" onclick="pinPress('4')">4</button>
+                <button class="pin-key" onclick="pinPress('5')">5</button>
+                <button class="pin-key" onclick="pinPress('6')">6</button>
+                <button class="pin-key" onclick="pinPress('7')">7</button>
+                <button class="pin-key" onclick="pinPress('8')">8</button>
+                <button class="pin-key" onclick="pinPress('9')">9</button>
+                <button class="pin-key key-action" onclick="pinClear()">Clear</button>
+                <button class="pin-key" onclick="pinPress('0')">0</button>
+                <button class="pin-key key-action" onclick="pinDelete()">⌫</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ===== Welcome / phone + PIN auth =====
+    (function() {
+        // If they already chose "Guest" this session, don't block them again
+        // until they close/reopen the app (or sign out, which clears this).
+        if (sessionStorage.getItem('guestMode')) {
+            const w = document.getElementById('welcome');
+            if (w) w.remove();
+            document.body.classList.remove('welcome-lock');
+            return;
+        }
+        const screens = { choose: 'authChoose', signin: 'authSignin', signup: 'authSignup', pin: 'authPin' };
+        let mode = null;            // 'signin' | 'signup'
+        let phase = null;           // 'enter' | 'confirm'  (signup uses both)
+        let firstPin = '';          // first entry during signup
+        let pin = '';               // current entry
+        let payload = {};           // name/phone collected before PIN
+
+        window.authShow = function(which) {
+            Object.values(screens).forEach(id => document.getElementById(id).style.display = 'none');
+            document.getElementById(screens[which] || 'authChoose').style.display = 'block';
+        };
+
+        window.browseAsGuest = function() {
+            sessionStorage.setItem('guestMode', '1');
+            const w = document.getElementById('welcome');
+            w.classList.add('hide');
+            document.body.classList.remove('welcome-lock');
+            setTimeout(() => w.remove(), 400);
+        };
+
+        function msg(id, text, ok) {
+            const el = document.getElementById(id);
+            el.textContent = text || '';
+            el.className = 'auth-msg ' + (ok ? 'ok' : 'error');
+        }
+
+        // ----- Sign in -----
+        window.signinStart = function() {
+            const phone = document.getElementById('signinPhone').value.trim();
+            if (phone.replace(/\D/g, '').length < 7) { msg('signinMsg', 'Enter a valid phone number.'); return; }
+            mode = 'signin'; phase = 'enter'; payload = { phone }; pin = '';
+            openPin('Enter your PIN', 'Welcome back');
+        };
+
+        // ----- Sign up -----
+        window.signupStart = function() {
+            const name = document.getElementById('signupName').value.trim();
+            const phone = document.getElementById('signupPhone').value.trim();
+            if (!name) { msg('signupMsg', 'Please enter your name.'); return; }
+            if (phone.replace(/\D/g, '').length < 7) { msg('signupMsg', 'Enter a valid phone number.'); return; }
+            mode = 'signup'; phase = 'enter'; firstPin = ''; pin = ''; payload = { name, phone };
+            openPin('Create a PIN', 'Choose a 4-digit PIN');
+        };
+
+        function openPin(title, sub) {
+            authShow('pin');
+            document.getElementById('pinTitle').textContent = title;
+            document.getElementById('pinSub').textContent = sub;
+            msg('pinMsg', '');
+            renderDots();
+        }
+
+        function renderDots() {
+            document.querySelectorAll('#pinDots .pin-dot').forEach((d, i) =>
+                d.classList.toggle('filled', i < pin.length));
+        }
+
+        window.pinPress = function(n) {
+            if (pin.length >= 4) return;
+            msg('pinMsg', '');
+            pin += n;
+            renderDots();
+            if (pin.length === 4) setTimeout(pinComplete, 150);
+        };
+        window.pinDelete = function() { pin = pin.slice(0, -1); renderDots(); };
+        window.pinClear  = function() { pin = ''; renderDots(); };
+        window.pinBack   = function() { authShow(mode === 'signup' ? 'signup' : 'signin'); };
+
+        function pinComplete() {
+            if (mode === 'signin') return submitSignin();
+            // signup: first capture, then confirm
+            if (phase === 'enter') {
+                firstPin = pin; pin = ''; phase = 'confirm';
+                document.getElementById('pinTitle').textContent = 'Confirm PIN';
+                document.getElementById('pinSub').textContent = 'Re-enter the same 4 digits';
+                renderDots();
+            } else {
+                if (pin !== firstPin) {
+                    msg('pinMsg', "PINs don't match. Try again.");
+                    pin = ''; firstPin = ''; phase = 'enter';
+                    document.getElementById('pinTitle').textContent = 'Create a PIN';
+                    document.getElementById('pinSub').textContent = 'Choose a 4-digit PIN';
+                    renderDots();
+                    return;
+                }
+                submitSignup();
+            }
+        }
+
+        function enterApp() {
+            msg('pinMsg', '✓ Success! Signing you in…', true);
+            setTimeout(() => window.location.reload(), 600);
+        }
+
+        function submitSignin() {
+            const body = new URLSearchParams({ phone: payload.phone, pin });
+            fetch('/auth/signin', { method: 'POST', body })
+                .then(r => r.json())
+                .then(d => {
+                    if (d.success) enterApp();
+                    else { msg('pinMsg', d.message || 'Incorrect PIN.'); pin = ''; renderDots(); }
+                })
+                .catch(() => { msg('pinMsg', 'Something went wrong.'); pin = ''; renderDots(); });
+        }
+
+        function submitSignup() {
+            const body = new URLSearchParams({ name: payload.name, phone: payload.phone, pin });
+            fetch('/auth/signup', { method: 'POST', body })
+                .then(r => r.json())
+                .then(d => {
+                    if (d.success) enterApp();
+                    else {
+                        msg('pinMsg', d.message || 'Could not create account.');
+                        pin = ''; firstPin = ''; phase = 'enter';
+                        document.getElementById('pinTitle').textContent = 'Create a PIN';
+                        document.getElementById('pinSub').textContent = 'Choose a 4-digit PIN';
+                        renderDots();
+                    }
+                })
+                .catch(() => { msg('pinMsg', 'Something went wrong.'); pin = ''; renderDots(); });
+        }
+    })();
+</script>
+{% endif %}
 
 <!-- ========== HEADER ========== -->
 <header class="site-header">
     <div class="header-row">
         <a href="{{ url_for('index') }}" class="brand">
             <img src="{{ url_for('static', filename='LEEDS.png') }}" alt="Leeds Pharmacy">
-            <span>Leeds Pharmacy</span>
         </a>
 
         <div class="header-search">
@@ -366,12 +638,13 @@
                     </div>
                     <button class="profile-menu-item" onclick="openProfileEdit()">👤 My Details</button>
                     <a class="profile-menu-item" href="{{ url_for('cart') }}">🛒 My Cart</a>
-                    <a class="profile-menu-item danger" href="{{ url_for('logout') }}">🚪 Log Out</a>
+                    <a class="profile-menu-item danger" href="{{ url_for('logout') }}" onclick="sessionStorage.removeItem('guestMode')">🚪 Log Out</a>
                 </div>
             </div>
             {% else %}
-            <!-- Logged out: sign-in icon -->
-            <a href="{{ url_for('login') }}" class="header-icon" title="Sign in">
+            <!-- Logged out: sign-in icon re-opens the welcome screen -->
+            <a href="#" class="header-icon" title="Sign in"
+               onclick="sessionStorage.removeItem('guestMode'); location.reload(); return false;">
                 <span class="ic">👤</span>
                 <span class="header-desktop-only" style="font-size:0.82rem;">Sign In</span>
             </a>

@@ -8,6 +8,7 @@ import secrets
 import datetime
 from functools import wraps
 from werkzeug.utils import secure_filename
+from werkzeug.security import generate_password_hash, check_password_hash
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 import emails
 import db
@@ -16,6 +17,14 @@ import payments
 app = Flask(__name__)
 # Use the SECRET_KEY env var in production (Render sets one); fall back for local dev.
 app.secret_key = os.environ.get("SECRET_KEY", "pillbox_secret_2024")
+
+# Keep users logged in for a year (persistent, app-like login until they sign out).
+app.permanent_session_lifetime = datetime.timedelta(days=365)
+
+
+@app.before_request
+def _make_session_permanent():
+    session.permanent = True
 
 # Public base URL for building absolute links in emails (e.g. staff invites).
 # On Render, set this to https://pillbox-pharmacy.onrender.com so links aren't "localhost".
@@ -736,46 +745,80 @@ def contact():
 
 # ── Auth routes ──────────────────────────────────────────────────────────────
 
-@app.route("/register", methods=["GET", "POST"])
-def register():
-    if request.method == "POST":
-        name  = request.form.get("name", "").strip()
-        email = request.form.get("email", "").strip().lower()
-        pw    = request.form.get("password", "").strip()
-        if not name or not email or not pw:
-            flash("All fields are required.", "error")
-            return redirect(url_for("register"))
-        users = load_users()
-        if any(u["email"] == email for u in users.values()):
-            flash("An account with that email already exists.", "error")
-            return redirect(url_for("register"))
-        uid = str(uuid.uuid4())
-        users[uid] = {"id": uid, "name": name, "email": email, "password": pw, "avatar": None}
-        save_users(users)
-        session["user_id"] = uid
-        flash(f"Welcome, {name}! Your account has been created.", "success")
-        return redirect(url_for("index"))
-    return render_template("auth/register.html")
+def normalize_phone(raw):
+    """Keep only digits so '(876) 123-4567' and '8761234567' match."""
+    return "".join(ch for ch in (raw or "") if ch.isdigit())
 
 
-@app.route("/login", methods=["GET", "POST"])
+def find_user_by_phone(users, phone):
+    phone = normalize_phone(phone)
+    if not phone:
+        return None
+    return next((u for u in users.values() if normalize_phone(u.get("phone")) == phone), None)
+
+
+# Email/password pages now just send users to the home welcome flow.
+@app.route("/login")
 def login():
-    if request.method == "POST":
-        email = request.form.get("email", "").strip().lower()
-        pw    = request.form.get("password", "").strip()
-        users = load_users()
-        user  = next((u for u in users.values() if u["email"] == email and u["password"] == pw), None)
-        if user:
-            session["user_id"] = user["id"]
-            flash(f"Welcome back, {user['name']}!", "success")
-            return redirect(request.args.get("next") or url_for("index"))
-        flash("Incorrect email or password.", "error")
-    return render_template("auth/login.html")
+    return redirect(url_for("index"))
+
+
+@app.route("/register")
+def register():
+    return redirect(url_for("index"))
+
+
+@app.route("/auth/signup", methods=["POST"])
+def auth_signup():
+    name  = request.form.get("name", "").strip()
+    phone = request.form.get("phone", "").strip()
+    pin   = request.form.get("pin", "").strip()
+    nphone = normalize_phone(phone)
+    if not name or not nphone:
+        return jsonify({"success": False, "message": "Please enter your name and phone number."}), 400
+    if len(nphone) < 7:
+        return jsonify({"success": False, "message": "Please enter a valid phone number."}), 400
+    if not (pin.isdigit() and len(pin) == 4):
+        return jsonify({"success": False, "message": "PIN must be 4 digits."}), 400
+    users = load_users()
+    if find_user_by_phone(users, nphone):
+        return jsonify({"success": False, "message": "An account with that phone number already exists."}), 409
+    uid = str(uuid.uuid4())
+    users[uid] = {
+        "id": uid, "name": name, "phone": nphone,
+        "pin": generate_password_hash(pin),
+        "email": None, "avatar": None,
+        "whatsapp": nphone, "gender": "", "address": "",
+    }
+    save_users(users)
+    session["user_id"] = uid
+    return jsonify({"success": True})
+
+
+@app.route("/auth/signin", methods=["POST"])
+def auth_signin():
+    phone = request.form.get("phone", "").strip()
+    pin   = request.form.get("pin", "").strip()
+    users = load_users()
+    user  = find_user_by_phone(users, phone)
+    if not user or not user.get("pin") or not check_password_hash(user["pin"], pin):
+        return jsonify({"success": False, "message": "Incorrect phone number or PIN."}), 401
+    session["user_id"] = user["id"]
+    return jsonify({"success": True})
+
+
+@app.route("/auth/check-phone", methods=["POST"])
+def auth_check_phone():
+    """Tell the UI whether a phone already has an account (sign in vs sign up)."""
+    users = load_users()
+    exists = find_user_by_phone(users, request.form.get("phone", "")) is not None
+    return jsonify({"exists": exists})
 
 
 @app.route("/logout")
 def logout():
     session.pop("user_id", None)
+    session.pop("guest", None)
     flash("You've been logged out.", "success")
     return redirect(url_for("index"))
 
