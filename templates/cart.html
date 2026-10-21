@@ -117,7 +117,7 @@
 {% endblock %}
 
 {% block content %}
-<button class="back-btn" onclick="history.back()" style="margin-bottom:16px;">← Back</button>
+<button class="back-btn" onclick="goBack('{{ url_for('shop') }}')" style="margin-bottom:16px;">← Back</button>
 <h2 style="font-size:1.6rem; font-weight:700; margin-bottom:24px;">🛒 Your Cart</h2>
 
 {% if cart_items %}
@@ -126,24 +126,22 @@
         <div class="cart-card">
             <div class="cart-card-header">{{ cart_items|length }} item{{ 's' if cart_items|length != 1 else '' }}</div>
             {% for item in cart_items %}
-            <div class="cart-item">
+            <div class="cart-item" id="cart-item-{{ item.id }}" data-price="{{ item.price }}">
                 <img src="{{ item.img }}" alt="{{ item.name }}">
                 <div class="item-info">
                     <div class="item-name">{{ item.name }}</div>
                     <div class="item-price">JMD{{ "%.2f"|format(item.price) }} each</div>
                 </div>
-                <div class="item-subtotal">JMD{{ "%.2f"|format(item.price * item.qty) }}</div>
+                <div class="item-subtotal" id="subtotal-{{ item.id }}">JMD{{ "%.2f"|format(item.price * item.qty) }}</div>
                 <div class="item-controls">
-                    <form action="{{ url_for('update_cart', product_id=item.id) }}" method="post" class="qty-form">
-                        <select name="qty" class="qty-select" onchange="this.form.submit()">
+                    <div class="qty-form">
+                        <select class="qty-select" onchange="updateQty({{ item.id }}, this.value)">
                             {% for n in range(1, 20) %}
                             <option value="{{ n }}" {{ 'selected' if item.qty == n else '' }}>{{ n }}</option>
                             {% endfor %}
                         </select>
-                    </form>
-                    <form action="{{ url_for('remove_from_cart', product_id=item.id) }}" method="post">
-                        <button type="submit" class="remove-btn" title="Remove">🗑 Remove</button>
-                    </form>
+                    </div>
+                    <button type="button" class="remove-btn" title="Remove" onclick="removeItem({{ item.id }})">🗑 Remove</button>
                 </div>
             </div>
             {% endfor %}
@@ -155,12 +153,12 @@
 
     <div class="order-summary">
         <h3>Order Summary</h3>
-        <div class="summary-row"><span>Subtotal</span><span>JMD{{ total }}</span></div>
-        <div class="summary-row"><span>Shipping</span><span style="color:var(--purple);">{{ 'FREE' if total >= 5000 else 'JMD500' }}</span></div>
-        <div class="summary-row"><span>Tax (15% GCT)</span><span>JMD{{ "%.2f"|format(total * 0.15) }}</span></div>
+        <div class="summary-row"><span>Subtotal</span><span id="sumSubtotal">JMD{{ "%.2f"|format(total) }}</span></div>
+        <div class="summary-row"><span>Shipping</span><span id="sumShipping" style="color:var(--purple);">{{ 'FREE' if total >= 5000 else 'JMD500.00' }}</span></div>
+        <div class="summary-row"><span>Tax (15% GCT)</span><span id="sumTax">JMD{{ "%.2f"|format(total * 0.15) }}</span></div>
         <div class="summary-row total">
             <span>Total</span>
-            <span>JMD{{ "%.2f"|format(total + (0 if total >= 5000 else 500) + total * 0.15) }}</span>
+            <span id="sumGrand">JMD{{ "%.2f"|format(total + (0 if total >= 5000 else 500) + total * 0.15) }}</span>
         </div>
         <a href="{{ url_for('checkout') }}" class="checkout-btn">Proceed to Checkout →</a>
         <div class="promo-row">
@@ -180,4 +178,46 @@
     <a href="{{ url_for('shop') }}" class="btn btn-primary">Start Shopping</a>
 </div>
 {% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function money(n) { return 'JMD' + Number(n).toFixed(2); }
+
+    function applySummary(s) {
+        document.getElementById('sumSubtotal').textContent = money(s.subtotal);
+        document.getElementById('sumShipping').textContent = s.shipping === 0 ? 'FREE' : money(s.shipping);
+        document.getElementById('sumTax').textContent      = money(s.tax);
+        document.getElementById('sumGrand').textContent    = money(s.grand);
+        const header = document.querySelector('.cart-card-header');
+        if (header) header.textContent = s.items + ' item' + (s.items === 1 ? '' : 's');
+        if (typeof updateCartCount === 'function') updateCartCount(s.count);
+        if (s.items === 0) window.location.reload();   // show empty-cart state
+    }
+
+    function removeItem(id) {
+        fetch('/remove_from_cart/' + id, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(r => r.json())
+            .then(s => {
+                const row = document.getElementById('cart-item-' + id);
+                if (row) row.remove();
+                applySummary(s);
+            });
+    }
+
+    function updateQty(id, qty) {
+        const body = new URLSearchParams({ qty });
+        fetch('/update_cart/' + id, {
+            method: 'POST',
+            headers: { 'X-Requested-With': 'XMLHttpRequest', 'Content-Type': 'application/x-www-form-urlencoded' },
+            body
+        })
+            .then(r => r.json())
+            .then(s => {
+                const sub = document.getElementById('subtotal-' + id);
+                if (sub && s.line_subtotal !== undefined) sub.textContent = money(s.line_subtotal);
+                applySummary(s);
+            });
+    }
+</script>
 {% endblock %}

@@ -480,8 +480,45 @@ def product(product_id):
     history.insert(0, product_id)
     session["view_history"] = history[:20]
 
-    related = [p for p in products if p["category"] == prod["category"] and p["id"] != product_id][:4]
+    related = _related_products(prod, products, 0, 8)
     return render_template("product.html", product=prod, related=related)
+
+
+def _related_products(prod, products, offset, limit):
+    """Ordered 'you may also like' list that NEVER runs dry:
+    same-category first, then everything else, looped — so infinite scroll
+    always has more to show."""
+    same = [p for p in products if p["category"] == prod["category"] and p["id"] != prod["id"]]
+    other = [p for p in products if p["category"] != prod["category"]]
+    ordered = same + other
+    if not ordered:
+        return []
+    # Wrap around so the feed is effectively endless.
+    n = len(ordered)
+    return [ordered[(offset + i) % n] for i in range(limit)]
+
+
+@app.route("/api/related/<int:product_id>")
+def api_related(product_id):
+    products = get_products()
+    prod = next((p for p in products if p["id"] == product_id), None)
+    if not prod:
+        return jsonify([])
+    offset = int(request.args.get("offset", 0))
+    limit = min(int(request.args.get("limit", 8)), 16)
+    items = _related_products(prod, products, offset, limit)
+    return jsonify([
+        {
+            "id": p["id"],
+            "name": p["name"],
+            "img": p["img"],
+            "price": p["effective_price"],
+            "discount": p.get("discount", 0),
+            "original_price": p["original_price"],
+            "url": url_for("product", product_id=p["id"]),
+        }
+        for p in items
+    ])
 
 
 @app.route("/cart")
@@ -509,6 +546,25 @@ def add_to_cart(product_id):
     return jsonify({"count": cart_count(), "message": "Added to cart"})
 
 
+def _is_ajax():
+    return request.headers.get("X-Requested-With") == "XMLHttpRequest"
+
+
+def _cart_summary():
+    """Totals used to refresh the cart page in place after an AJAX action."""
+    total = round(cart_total(), 2)
+    shipping = 0 if total >= 5000 else (500 if total > 0 else 0)
+    tax = round(total * 0.15, 2)
+    return {
+        "count":    cart_count(),
+        "items":    len(get_cart()),
+        "subtotal": total,
+        "shipping": shipping,
+        "tax":      tax,
+        "grand":    round(total + shipping + tax, 2),
+    }
+
+
 @app.route("/remove_from_cart/<int:product_id>", methods=["POST"])
 def remove_from_cart(product_id):
     c = get_cart()
@@ -516,6 +572,8 @@ def remove_from_cart(product_id):
     if pid in c:
         del c[pid]
         session["cart"] = c
+    if _is_ajax():
+        return jsonify(_cart_summary())
     return redirect(url_for("cart"))
 
 
@@ -530,6 +588,11 @@ def update_cart(product_id):
         else:
             c[pid]["qty"] = qty
     session["cart"] = c
+    if _is_ajax():
+        summary = _cart_summary()
+        pdata = get_cart().get(pid)
+        summary["line_subtotal"] = round(pdata["price"] * pdata["qty"], 2) if pdata else 0
+        return jsonify(summary)
     return redirect(url_for("cart"))
 
 

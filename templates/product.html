@@ -204,7 +204,7 @@
 {% endblock %}
 
 {% block content %}
-<button class="back-btn" onclick="history.back()" style="margin-bottom:16px;">← Back</button>
+<button class="back-btn" onclick="goBack('{{ url_for('shop') }}')" style="margin-bottom:16px;">← Back</button>
 <div class="breadcrumb">
     <a href="{{ url_for('index') }}">Home</a>
     <span>›</span>
@@ -315,7 +315,7 @@
 
 {% if related %}
 <div class="related-title">You Might Also Like</div>
-<div class="related-grid">
+<div class="related-grid" id="relatedGrid">
     {% for p in related %}
     <div class="product-card">
         <a href="{{ url_for('product', product_id=p.id) }}">
@@ -323,11 +323,12 @@
         </a>
         <div class="body">
             <div class="name">{{ p.name }}</div>
-            <div class="price">JMD {{ "%.2f"|format(p.effective_price) }}</div>
+            <div class="price">JMD {{ "%.0f"|format(p.effective_price) }}</div>
         </div>
     </div>
     {% endfor %}
 </div>
+<div id="relatedSentinel" style="height:40px;"></div>
 {% endif %}
 {% endblock %}
 
@@ -401,6 +402,51 @@ function changeQty(delta) {
     const input = document.getElementById('qty-input');
     input.value = Math.max(1, parseInt(input.value || 1) + delta);
 }
+
+// ── Infinite "You may also like" ──
+(function() {
+    const grid     = document.getElementById('relatedGrid');
+    const sentinel = document.getElementById('relatedSentinel');
+    if (!grid || !sentinel) return;
+
+    const productId = {{ product.id }};
+    let offset = grid.children.length;   // already-rendered count (8)
+    let loading = false;
+    let loadedPages = 0;
+    const MAX_PAGES = 40;                 // generous cap to avoid runaway loops
+
+    function fmt(p) { return 'JMD ' + Number(p).toFixed(0); }
+
+    function loadMore() {
+        if (loading || loadedPages >= MAX_PAGES) return;
+        loading = true;
+        fetch(`/api/related/${productId}?offset=${offset}&limit=8`)
+            .then(r => r.json())
+            .then(items => {
+                if (!items.length) { loading = false; return; }
+                items.forEach(p => {
+                    const card = document.createElement('div');
+                    card.className = 'product-card';
+                    card.innerHTML = `
+                        <a href="${p.url}"><img src="${p.img}" alt="${p.name}"></a>
+                        <div class="body">
+                            <div class="name">${p.name}</div>
+                            <div class="price">${fmt(p.price)}</div>
+                        </div>`;
+                    grid.appendChild(card);
+                });
+                offset += items.length;
+                loadedPages++;
+                loading = false;
+            })
+            .catch(() => { loading = false; });
+    }
+
+    const io = new IntersectionObserver(entries => {
+        if (entries[0].isIntersecting) loadMore();
+    }, { rootMargin: '400px' });
+    io.observe(sentinel);
+})();
 
 function addToCart(productId, btn) {
     const qty = parseInt(document.getElementById('qty-input').value || 1);

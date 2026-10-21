@@ -101,7 +101,7 @@
 {% endblock %}
 
 {% block content %}
-<button class="back-btn" onclick="history.back()" style="margin-bottom:16px;">← Back</button>
+<button class="back-btn" onclick="goBack('{{ url_for('index') }}')" style="margin-bottom:16px;">← Back</button>
 <div class="shop-layout">
     <aside class="sidebar">
         <h3>Categories</h3>

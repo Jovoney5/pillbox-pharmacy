@@ -56,7 +56,7 @@
             gap: 12px;
         }
         .brand { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 1.1rem; white-space: nowrap; }
-        .brand img { height: 34px; width: auto; border-radius: 6px; background: #fff; padding: 2px; }
+        .brand img { height: 36px; width: auto; }
 
         .header-search { flex: 1; min-width: 0; }
         .header-search form { display: flex; }
@@ -184,8 +184,8 @@
 
         /* ========== FOOTER ========== */
         footer {
-            background: #12241b;              /* deep forest green */
-            color: rgba(255,255,255,0.82);
+            background: var(--purple);        /* matches the top header */
+            color: rgba(255,255,255,0.9);
             padding: 28px 14px 22px;
             margin-top: 20px;
         }
@@ -208,20 +208,23 @@
             display: none;
             position: fixed; left: 0; right: 0; bottom: 0;
             z-index: 200;
-            background: #fff;
-            border-top: 1px solid var(--gray-200);
-            box-shadow: 0 -2px 12px rgba(30,20,60,0.12);
+            background: var(--purple);
+            box-shadow: 0 -2px 12px rgba(30,20,60,0.2);
         }
         .bottom-nav a {
             flex: 1;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             gap: 2px;
             padding: 8px 4px 10px;
-            color: var(--gray-600); font-size: 0.68rem; font-weight: 600;
+            color: rgba(255,255,255,0.85); font-size: 0.68rem; font-weight: 600;
             position: relative;
         }
         .bottom-nav a .ic { font-size: 1.4rem; line-height: 1; }
-        .bottom-nav a.active { color: var(--purple); }
+        .bottom-nav a.active { color: #fff; }
+        .bottom-nav a.active::after {
+            content: ''; position: absolute; top: 0; left: 20%; right: 20%; height: 3px;
+            background: #fff; border-radius: 0 0 3px 3px;
+        }
         .bottom-nav .bn-badge {
             position: absolute; top: 4px; left: 50%; margin-left: 4px;
             background: var(--red); color: #fff;
@@ -433,6 +436,23 @@
             setTimeout(() => el.remove(), 500);
         });
     }, 4000);
+
+    // ===== Smart back navigation =====
+    // Go to the previous *distinct* same-origin page; fall back to a safe URL.
+    // Avoids landing back on a stale cart/action state.
+    function goBack(fallback) {
+        const ref = document.referrer;
+        const here = window.location.href;
+        if (ref && ref !== here) {
+            try {
+                if (new URL(ref).origin === window.location.origin) {
+                    window.location.href = ref;
+                    return;
+                }
+            } catch (e) {}
+        }
+        window.location.href = fallback || '/';
+    }
 
     // ===== Global: update cart badges everywhere (header + bottom nav) =====
     function updateCartCount(count) {
