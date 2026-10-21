@@ -401,40 +401,38 @@ def search_suggest():
 def index():
     products = get_products()
 
-    # ── Personalised feed ──────────────────────────────────────────────────
-    # Build from session browsing history (list of product ids, most recent first)
-    history = session.get("view_history", [])   # list of product ids
+    # ── Recommendation feed ─────────────────────────────────────────────────
+    # Rank the WHOLE catalogue so similar items surface first and keep
+    # surfacing until that category runs out — then new arrivals / deals.
+    history = session.get("view_history", [])   # product ids, most-recent first
 
-    if history:
-        # Find the categories of recently viewed products
-        viewed_cats = []
-        for pid in history[:5]:
-            p = next((x for x in products if x["id"] == pid), None)
-            if p and p["category"] not in viewed_cats:
-                viewed_cats.append(p["category"])
+    # Weight the categories the guest has been browsing: the more recently /
+    # more often a category was viewed, the higher its weight.
+    cat_weight = {}
+    for rank, pid in enumerate(history[:10]):
+        p = next((x for x in products if x["id"] == pid), None)
+        if p:
+            # most recent view worth the most; older views add a little more
+            cat_weight[p["category"]] = cat_weight.get(p["category"], 0) + (10 - rank)
 
-        # Score every product: same category as recently viewed = higher weight
-        def personalise_score(p):
-            if p["id"] in history:
-                idx = history.index(p["id"])
-                # recently viewed but don't show exact duplicates first
-                return 5 - min(idx, 4)
-            if p["category"] in viewed_cats:
-                return 10 + viewed_cats.index(p["category"]) * -1
-            return 0
+    max_id = max((p["id"] for p in products), default=1)
 
-        # Sort: related-category products first, then fallback to default featured
-        scored = sorted(products, key=personalise_score, reverse=True)
-        # exclude products already at the top of history to show variety
-        featured = [p for p in scored if p["id"] not in history[:2]][:6]
-        if len(featured) < 6:
-            extras = [p for p in scored if p not in featured]
-            featured += extras[:6 - len(featured)]
-        personalised = True
-    else:
-        featured_ids = [1, 7, 13, 16, 10, 3]
-        featured = [p for p in products if p["id"] in featured_ids]
-        personalised = False
+    def score(p):
+        s = 0.0
+        # 1) Similar to what they viewed — the core of "show me more like this"
+        s += cat_weight.get(p["category"], 0) * 5
+        # 2) New arrivals are tempting even with no history (higher id = newer)
+        s += (p["id"] / max_id) * 6
+        # 3) Discounts are tempting
+        s += min(p.get("discount", 0), 50) * 0.3
+        # 4) Push the exact items they just opened slightly down so the feed
+        #    feels fresh (similar, not identical)
+        if p["id"] in history[:2]:
+            s -= 8
+        return s
+
+    featured = sorted(products, key=score, reverse=True)   # ALL products, ranked
+    personalised = bool(history)
 
     cat_images = {}
     for key in CATEGORIES:
