@@ -127,6 +127,50 @@
             width: 100%;
         }
 
+        /* ========== BACK BUTTON ========== */
+        .back-bar { max-width: 1100px; margin: 10px auto 0; padding: 0 14px; }
+        .back-btn {
+            display: inline-flex; align-items: center; gap: 6px;
+            background: #fff; border: 1px solid var(--gray-200);
+            border-radius: 20px; padding: 7px 14px;
+            font-size: 0.85rem; font-weight: 600; color: var(--gray-700);
+            cursor: pointer; font-family: inherit;
+            box-shadow: var(--shadow);
+        }
+        .back-btn:hover { background: var(--purple-pale); color: var(--purple-dark); }
+
+        /* green availability tag */
+        .stock-tag {
+            display: inline-flex; align-items: center; gap: 5px;
+            background: #dcfce7; color: var(--green);
+            border-radius: 5px; padding: 3px 10px;
+            font-size: 0.78rem; font-weight: 700;
+        }
+        .stock-tag::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--green); }
+
+        /* ========== SEARCH SUGGESTIONS ========== */
+        .header-search { position: relative; }
+        .suggest-box {
+            position: absolute; top: calc(100% + 6px); left: 0; right: 0;
+            background: #fff; border-radius: 12px; overflow: hidden;
+            box-shadow: var(--shadow-lg); border: 1px solid var(--gray-200);
+            z-index: 300; display: none;
+        }
+        .suggest-box.open { display: block; }
+        .suggest-item {
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px 12px; border-bottom: 1px solid var(--gray-100);
+            color: var(--gray-900);
+        }
+        .suggest-item:last-child { border-bottom: none; }
+        .suggest-item:hover { background: var(--purple-pale); }
+        .suggest-item img { width: 44px; height: 44px; border-radius: 8px; object-fit: cover; flex-shrink: 0; background: var(--gray-100); }
+        .suggest-info { flex: 1; min-width: 0; }
+        .suggest-name { font-size: 0.86rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .suggest-meta { display: flex; align-items: center; gap: 8px; margin-top: 2px; }
+        .suggest-price { font-size: 0.82rem; font-weight: 700; color: var(--purple); }
+        .suggest-empty { padding: 16px; text-align: center; color: var(--gray-600); font-size: 0.85rem; }
+
         /* ========== BUTTONS ========== */
         .btn {
             display: inline-flex; align-items: center; justify-content: center; gap: 6px;
@@ -140,7 +184,7 @@
 
         /* ========== FOOTER ========== */
         footer {
-            background: var(--purple-deep);
+            background: #12241b;              /* deep forest green */
             color: rgba(255,255,255,0.82);
             padding: 28px 14px 22px;
             margin-top: 20px;
@@ -209,10 +253,11 @@
         </a>
 
         <div class="header-search">
-            <form action="{{ url_for('shop') }}" method="get">
-                <input type="text" name="search" placeholder="Search products..." aria-label="Search">
+            <form action="{{ url_for('shop') }}" method="get" autocomplete="off">
+                <input type="text" name="search" id="searchInput" placeholder="Search products..." aria-label="Search">
                 <button type="submit">🔍</button>
             </form>
+            <div class="suggest-box" id="suggestBox"></div>
         </div>
 
         <div class="header-actions">
@@ -294,7 +339,7 @@
     <a href="{{ url_for('shop') }}" class="{{ 'active' if request.endpoint == 'shop' else '' }}">
         <span class="ic">🛍️</span><span>Shop</span>
     </a>
-    <a href="{{ url_for('cart') }}" class="{{ 'active' if request.endpoint == 'cart' else '' }}">
+    <a href="{{ url_for('cart') }}" id="bnCartLink" class="{{ 'active' if request.endpoint == 'cart' else '' }}">
         <span class="ic">🛒</span>
         {% if cart_count > 0 %}<span class="bn-badge">{{ cart_count }}</span>{% endif %}
         <span>Cart</span>
@@ -388,6 +433,66 @@
             setTimeout(() => el.remove(), 500);
         });
     }, 4000);
+
+    // ===== Global: update cart badges everywhere (header + bottom nav) =====
+    function updateCartCount(count) {
+        // header cart icon
+        const headerCart = document.querySelector('.header-actions .header-icon');
+        if (headerCart) {
+            let b = headerCart.querySelector('.cart-badge');
+            if (count > 0) {
+                if (!b) { b = document.createElement('span'); b.className = 'cart-badge'; headerCart.appendChild(b); }
+                b.textContent = count;
+            } else if (b) { b.remove(); }
+        }
+        // bottom-nav cart
+        const bnLink = document.getElementById('bnCartLink');
+        if (bnLink) {
+            let bb = bnLink.querySelector('.bn-badge');
+            if (count > 0) {
+                if (!bb) { bb = document.createElement('span'); bb.className = 'bn-badge'; bnLink.insertBefore(bb, bnLink.children[1] || null); }
+                bb.textContent = count;
+            } else if (bb) { bb.remove(); }
+        }
+    }
+
+    // ===== Search autocomplete =====
+    (function() {
+        const input = document.getElementById('searchInput');
+        const box   = document.getElementById('suggestBox');
+        if (!input || !box) return;
+        let timer = null;
+
+        function fmt(p) { return 'JMD ' + Number(p).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+
+        function render(items) {
+            if (!items.length) { box.innerHTML = '<div class="suggest-empty">No products found</div>'; box.classList.add('open'); return; }
+            box.innerHTML = items.map(p => `
+                <a class="suggest-item" href="${p.url}">
+                    <img src="${p.img}" alt="">
+                    <div class="suggest-info">
+                        <div class="suggest-name">${p.name}</div>
+                        <div class="suggest-meta">
+                            <span class="suggest-price">${fmt(p.price)}</span>
+                            <span class="stock-tag">Available</span>
+                        </div>
+                    </div>
+                </a>`).join('');
+            box.classList.add('open');
+        }
+
+        input.addEventListener('input', function() {
+            clearTimeout(timer);
+            const q = this.value.trim();
+            if (!q) { box.classList.remove('open'); return; }
+            timer = setTimeout(() => {
+                fetch('/api/search-suggest?q=' + encodeURIComponent(q))
+                    .then(r => r.json()).then(render).catch(() => box.classList.remove('open'));
+            }, 150);
+        });
+        input.addEventListener('focus', function() { if (this.value.trim()) input.dispatchEvent(new Event('input')); });
+        document.addEventListener('click', e => { if (!box.parentElement.contains(e.target)) box.classList.remove('open'); });
+    })();
 </script>
 
 {% block extra_js %}{% endblock %}

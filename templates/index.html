@@ -181,7 +181,7 @@
             .then(r => r.json())
             .then(data => {
                 btn.textContent = '✓';
-                document.querySelectorAll('.cart-badge, .bn-badge').forEach(b => b.textContent = data.count);
+                updateCartCount(data.count);
                 setTimeout(() => { btn.textContent = old; btn.disabled = false; }, 1200);
             })
             .catch(() => { btn.textContent = old; btn.disabled = false; });

@@ -111,6 +111,20 @@
         margin-bottom: 12px;
     }
     .add-big-btn:hover { background: var(--purple-light); }
+    .buy-now-btn {
+        background: #f59e0b;
+        color: #fff;
+        border: none;
+        border-radius: 10px;
+        padding: 14px 32px;
+        font-size: 1rem;
+        font-weight: 700;
+        cursor: pointer;
+        width: 100%;
+        transition: background 0.18s;
+        margin-bottom: 12px;
+    }
+    .buy-now-btn:hover { background: #d97706; }
     .features { margin-top: 20px; }
     .feature-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; font-size: 0.88rem; color: var(--gray-700); }
     .feature-row .check { color: var(--purple); font-weight: 700; }
@@ -190,6 +204,7 @@
 {% endblock %}
 
 {% block content %}
+<button class="back-btn" onclick="history.back()" style="margin-bottom:16px;">← Back</button>
 <div class="breadcrumb">
     <a href="{{ url_for('index') }}">Home</a>
     <span>›</span>
@@ -260,6 +275,7 @@
                 <input type="number" id="qty-input" value="1" min="1" max="99">
                 <button class="qty-btn" onclick="changeQty(1)">+</button>
             </div>
+            <span class="stock-tag">In Stock</span>
         </div>
 
         {% if product.category == 'books' %}
@@ -268,6 +284,9 @@
                 style="background: var(--purple);">
             🛒 Add Physical Copy to Cart
         </button>
+        <button class="buy-now-btn" id="buyNowBtn" onclick="buyNow({{ product.id }}, this)">
+            ⚡ Buy Now
+        </button>
         <button class="add-big-btn" id="digitalBtn"
                 onclick="getDigitalCopy(this)"
                 style="display:none; background: #2563eb;">
@@ -275,6 +294,7 @@
         </button>
         {% else %}
         <button class="add-big-btn" onclick="addToCart({{ product.id }}, this)">🛒 Add to Cart</button>
+        <button class="buy-now-btn" onclick="buyNow({{ product.id }}, this)">⚡ Buy Now</button>
         {% endif %}
 
         <a href="{{ url_for('shop') }}" style="display:block; text-align:center; color:var(--gray-600); font-size:0.88rem; margin-top:10px;">← Continue Shopping</a>
@@ -284,7 +304,7 @@
             <div class="feature-row"><span class="check">✓</span> Physical copies dispatched within 24hrs</div>
             <div class="feature-row"><span class="check">✓</span> Digital copies delivered instantly by email</div>
             {% else %}
-            <div class="feature-row"><span class="check">✓</span> In stock &amp; ready to ship</div>
+            <div class="feature-row"><span class="check">✓</span> In stock &amp; ready for pickup</div>
             {% endif %}
             <div class="feature-row"><span class="check">✓</span> Free delivery on orders over JMD 5,000</div>
             <div class="feature-row"><span class="check">✓</span> 30-day hassle-free returns</div>
@@ -385,25 +405,27 @@ function changeQty(delta) {
 function addToCart(productId, btn) {
     const qty = parseInt(document.getElementById('qty-input').value || 1);
     btn.disabled = true;
+    const label = btn.textContent;
     btn.textContent = 'Adding...';
     const requests = Array.from({length: qty}, () => fetch(`/add_to_cart/${productId}`, { method: 'POST' }));
-    Promise.all(requests)
+    return Promise.all(requests)
         .then(rs => Promise.all(rs.map(r => r.json())))
         .then(results => {
             const last = results[results.length - 1];
             btn.textContent = '✓ Added to Cart!';
             btn.style.background = 'var(--purple-dark)';
-            const badge = document.querySelector('.cart-badge');
-            if (badge) { badge.textContent = last.count; }
-            else {
-                const cartLink = document.querySelector('.nav-cart');
-                const b = document.createElement('span');
-                b.className = 'cart-badge';
-                b.textContent = last.count;
-                cartLink.insertBefore(b, cartLink.lastChild);
-            }
-            setTimeout(() => { btn.textContent = '🛒 Add to Cart'; btn.style.background = ''; btn.disabled = false; }, 2000);
+            if (typeof updateCartCount === 'function') updateCartCount(last.count);
+            setTimeout(() => { btn.textContent = label; btn.style.background = ''; btn.disabled = false; }, 1800);
+            return last;
         });
+}
+
+function buyNow(productId, btn) {
+    btn.disabled = true;
+    btn.textContent = 'Processing...';
+    const qty = parseInt(document.getElementById('qty-input').value || 1);
+    const requests = Array.from({length: qty}, () => fetch(`/add_to_cart/${productId}`, { method: 'POST' }));
+    Promise.all(requests).then(() => { window.location.href = '/checkout'; });
 }
 </script>
 {% endblock %}
