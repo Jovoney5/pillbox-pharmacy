@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Saved Invoices – Leeds Admin</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --purple: #7B2FBE; --purple-light: #9B59D0; --purple-dark: #561F87;
+            --purple-deep: #3A1060; --purple-pale: #F3E8FF;
+            --gray-50: #faf9fc; --gray-100: #f2eef8; --gray-200: #e4daf0;
+            --gray-600: #5b5170; --gray-700: #3d3356; --gray-900: #1a1230;
+            --red: #dc2626; --green: #16a34a;
+            --shadow: 0 2px 8px rgba(90,30,150,0.10);
+        }
+        body { font-family: 'Inter', sans-serif; background: var(--gray-50); color: var(--gray-900); }
+        a { text-decoration: none; color: inherit; }
+        .admin-layout { display: flex; min-height: 100vh; }
+        .sidebar { width: 240px; flex-shrink: 0; background: var(--purple-deep); color: white; padding: 24px 16px; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+        .sidebar-logo { margin-bottom: 32px; }
+        .sidebar-logo img { height: 48px; border-radius: 6px; background: white; padding: 3px; }
+        .sidebar-logo p { font-size: 0.72rem; color: rgba(255,255,255,0.5); margin-top: 6px; }
+        .sidebar-nav a { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px; font-size: 0.88rem; font-weight: 500; color: rgba(255,255,255,0.75); margin-bottom: 4px; }
+        .sidebar-nav a:hover, .sidebar-nav a.active { background: rgba(255,255,255,0.12); color: white; }
+        .sidebar-nav .icon { font-size: 1rem; width: 20px; text-align: center; }
+        .sidebar-divider { border: none; border-top: 1px solid rgba(255,255,255,0.15); margin: 14px 0; }
+        .admin-main { flex: 1; padding: 28px 32px; }
+        .admin-main h1 { font-size: 1.5rem; font-weight: 800; margin-bottom: 16px; }
+
+        .find-box { background: #fff; border-radius: 12px; box-shadow: var(--shadow); padding: 16px 18px; margin-bottom: 20px; }
+        .find-box h3 { font-size: 0.95rem; margin-bottom: 10px; }
+        .find-box input { width: 100%; max-width: 420px; padding: 10px 14px; border: 1.5px solid var(--gray-200); border-radius: 10px; font-size: 0.92rem; font-family: inherit; }
+        .find-results { margin-top: 12px; }
+        .find-row { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--gray-100); font-size: 0.86rem; }
+        .find-row a { color: var(--purple); font-weight: 700; }
+        .tag-exp { font-weight: 700; } .tag-exp.bad { color: var(--red); } .tag-exp.soon { color: #d97706; } .tag-exp.good { color: var(--green); }
+
+        .inv-card { background: #fff; border-radius: 12px; box-shadow: var(--shadow); overflow: hidden; }
+        table { width: 100%; border-collapse: collapse; }
+        th { background: var(--gray-100); text-align: left; padding: 11px 16px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--gray-600); }
+        td { padding: 12px 16px; border-bottom: 1px solid var(--gray-100); font-size: 0.88rem; }
+        tr:hover td { background: var(--gray-50); }
+        .btn-open { background: var(--purple-pale); color: var(--purple-dark); border-radius: 8px; padding: 6px 14px; font-weight: 700; font-size: 0.8rem; }
+        .empty { padding: 40px; text-align: center; color: var(--gray-600); }
+        .newbtn { background: var(--purple); color: #fff; border-radius: 8px; padding: 9px 16px; font-weight: 700; font-size: 0.85rem; float: right; }
+        @media (max-width: 760px) { .sidebar { width: 64px; padding: 20px 8px; } .sidebar-logo p, .sidebar-nav span { display: none; } .admin-main { padding: 18px 14px; } }
+    </style>
+</head>
+<body>
+<div class="admin-layout">
+    <aside class="sidebar">
+        <div class="sidebar-logo"><img src="{{ url_for('static', filename='LEEDS.png') }}" alt="Leeds"><p>Admin Panel</p></div>
+        <nav class="sidebar-nav">
+            <a href="{{ url_for('admin_overview') }}"><span class="icon">📊</span><span>Overview</span></a>
+            <a href="{{ url_for('admin_dashboard') }}"><span class="icon">📦</span><span>Products</span></a>
+            <a href="{{ url_for('admin_add_product') }}"><span class="icon">➕</span><span>Add Product</span></a>
+            <a href="{{ url_for('admin_invoices') }}" class="active"><span class="icon">🧾</span><span>Invoices</span></a>
+            <a href="{{ url_for('admin_orders') }}"><span class="icon">📋</span><span>Orders</span></a>
+            <a href="{{ url_for('admin_stats') }}"><span class="icon">📈</span><span>Statistics</span></a>
+            <a href="{{ url_for('admin_analytics') }}"><span class="icon">🟢</span><span>Live Analytics</span></a>
+            <a href="{{ url_for('admin_searches') }}"><span class="icon">🔎</span><span>User Searches</span></a>
+            <a href="{{ url_for('admin_staff') }}"><span class="icon">👥</span><span>Staff</span></a>
+            <a href="{{ url_for('admin_appointments') }}"><span class="icon">&#9723;</span><span>Appointments {% if pending_appts > 0 %}<span style="background:#dc2626;color:white;border-radius:10px;padding:1px 7px;font-size:0.68rem;font-weight:700;margin-left:4px;">{{ pending_appts }}</span>{% endif %}</span></a>
+            <a href="/admin/ads"><span class="icon">📢</span><span>Ad Manager</span></a>
+            <hr class="sidebar-divider">
+            <a href="{{ url_for('index') }}" target="_blank"><span class="icon">🏪</span><span>View Store</span></a>
+            <a href="{{ url_for('admin_logout') }}"><span class="icon">🚪</span><span>Logout</span></a>
+        </nav>
+    </aside>
+
+    <div class="admin-main">
+        <h1>📂 Saved Invoices <a href="{{ url_for('admin_invoice_new') }}" class="newbtn">+ New Invoice</a></h1>
+
+        <!-- Find product -->
+        <div class="find-box">
+            <h3>🔍 Find which invoice a product came from</h3>
+            <input id="findInput" placeholder="Type a product name…" oninput="runFind(this.value)">
+            <div class="find-results" id="findResults"></div>
+        </div>
+
+        <div class="inv-card">
+            {% if invoices %}
+            <table>
+                <thead><tr><th>Invoice #</th><th>Supplier</th><th>Date</th><th>Items</th><th>Total</th><th>Photo</th><th></th></tr></thead>
+                <tbody>
+                {% for inv in invoices %}
+                <tr>
+                    <td><b>{{ inv.invoice_no or '—' }}</b></td>
+                    <td>{{ inv.supplier or '—' }}</td>
+                    <td>{{ inv.date or '—' }}</td>
+                    <td>{{ inv['items']|length }}</td>
+                    <td>{{ inv.totals.grand if inv.totals else '—' }}</td>
+                    <td>{% if inv.photo %}📷{% else %}—{% endif %}</td>
+                    <td><a href="{{ url_for('admin_invoice_edit', invoice_id=inv.id) }}" class="btn-open">Open / Edit</a></td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="empty">No invoices saved yet. Click <b>+ New Invoice</b> to add one.</div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+    let ft = null;
+    function runFind(q) {
+        clearTimeout(ft);
+        const box = document.getElementById('findResults');
+        if (!q.trim()) { box.innerHTML = ''; return; }
+        ft = setTimeout(() => {
+            fetch('/api/admin/find-invoices-for-product?q=' + encodeURIComponent(q))
+                .then(r => r.json())
+                .then(rows => {
+                    if (!rows.length) { box.innerHTML = '<div class="find-row">No matches.</div>'; return; }
+                    const today = new Date();
+                    box.innerHTML = rows.map(r => {
+                        let exp = '';
+                        if (r.expiry) {
+                            const d = new Date(r.expiry);
+                            const days = Math.round((d - today) / 86400000);
+                            const cls = days < 0 ? 'bad' : (days < 90 ? 'soon' : 'good');
+                            const txt = days < 0 ? 'EXPIRED' : (days + ' days left');
+                            exp = `<span class="tag-exp ${cls}">${r.expiry} (${txt})</span>`;
+                        }
+                        return `<div class="find-row">
+                            <span>${r.description} — qty ${r.qty||'?'} ${r.lot?('· lot '+r.lot):''} ${exp}</span>
+                            <a href="/admin/invoices/${r.invoice_id}">${r.invoice_no||'invoice'} (${r.supplier||''}) →</a>
+                        </div>`;
+                    }).join('');
+                });
+        }, 160);
+    }
+    // auto-focus find box if arrived via "Find Product"
+    if (new URLSearchParams(location.search).get('find')) document.getElementById('findInput').focus();
+</script>
+</body>
+</html>

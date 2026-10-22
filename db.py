@@ -28,7 +28,7 @@ USE_PG = bool(DATABASE_URL)
 TABLE_PREFIX = "leeds_"
 
 # Logical table names used throughout the app.
-_LIST_TABLES = {"products", "orders", "staff", "appointments", "ads", "events", "searches"}
+_LIST_TABLES = {"products", "orders", "staff", "appointments", "ads", "events", "searches", "invoices"}
 _ALL_TABLES = _LIST_TABLES | {"users"}
 
 

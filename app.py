@@ -1180,6 +1180,230 @@ def admin_set_discount(product_id):
     return jsonify({"success": False}), 404
 
 
+# ── Invoices (stock-in) ───────────────────────────────────────────────────────
+
+def load_invoices():
+    return db.read_list("invoices")
+
+
+def save_invoices(invoices):
+    db.write_list("invoices", invoices)
+
+
+def _apply_invoice_to_stock(invoice):
+    """Push an invoice's line items into product stock + expiry batches."""
+    products = load_products()
+    by_id = {p["id"]: p for p in products}
+    changed = False
+    for item in invoice.get("items", []):
+        pid = item.get("product_id")
+        if not pid or pid not in by_id:
+            continue
+        prod = by_id[pid]
+        try:
+            qty = int(float(item.get("qty") or 0))
+        except (ValueError, TypeError):
+            qty = 0
+        if qty <= 0:
+            continue
+        # Running stock count
+        prod["stock"] = int(prod.get("stock", 0)) + qty
+        # Expiry/lot batches for expiry tracking
+        batches = prod.setdefault("batches", [])
+        batches.append({
+            "qty":      qty,
+            "lot":      item.get("lot", ""),
+            "expiry":   item.get("expiry", ""),
+            "invoice":  invoice.get("invoice_no", ""),
+            "added_at": datetime.datetime.now().isoformat(),
+        })
+        changed = True
+    if changed:
+        save_products(products)
+
+
+@app.route("/admin/invoices")
+@admin_required
+def admin_invoices():
+    """Landing: New / Retrieve / Find product."""
+    return render_template("admin/invoices.html")
+
+
+@app.route("/admin/invoices/list")
+@admin_required
+def admin_invoices_list():
+    invoices = sorted(load_invoices(), key=lambda x: x.get("created_at", ""), reverse=True)
+    return render_template("admin/invoices_list.html", invoices=invoices)
+
+
+@app.route("/admin/invoices/new")
+@admin_required
+def admin_invoice_new():
+    return render_template("admin/invoice_edit.html", invoice=None)
+
+
+@app.route("/admin/invoices/<invoice_id>")
+@admin_required
+def admin_invoice_edit(invoice_id):
+    inv = next((i for i in load_invoices() if i["id"] == invoice_id), None)
+    if not inv:
+        flash("Invoice not found.", "error")
+        return redirect(url_for("admin_invoices_list"))
+    return render_template("admin/invoice_edit.html", invoice=inv)
+
+
+@app.route("/admin/invoices/save", methods=["POST"])
+@admin_required
+def admin_invoice_save():
+    data = request.get_json(silent=True) or {}
+    invoices = load_invoices()
+    inv_id = data.get("id")
+    now = datetime.datetime.now().isoformat()
+
+    inv = next((i for i in invoices if i["id"] == inv_id), None) if inv_id else None
+    is_new = inv is None
+    if is_new:
+        inv = {"id": uuid.uuid4().hex, "created_at": now}
+        invoices.append(inv)
+
+    # Header fields
+    for f in ("supplier", "invoice_no", "order_no", "date", "due_date", "pharmacy", "photo", "notes"):
+        inv[f] = (data.get(f) or "").strip() if isinstance(data.get(f), str) else data.get(f, "")
+    # Line items
+    inv["items"] = data.get("items", [])
+    # Totals
+    inv["totals"] = data.get("totals", {})
+    inv["updated_at"] = now
+
+    save_invoices(invoices)
+
+    # Update the live system: stock + expiry (only when flagged, to avoid double-counting)
+    if data.get("apply_to_stock"):
+        _apply_invoice_to_stock(inv)
+        inv["applied"] = True
+        save_invoices(invoices)
+
+    return jsonify({"success": True, "id": inv["id"]})
+
+
+@app.route("/admin/invoices/<invoice_id>/json")
+@admin_required
+def admin_invoice_json(invoice_id):
+    """Lightweight fetch used by the editor to poll for the phone-uploaded photo."""
+    inv = next((i for i in load_invoices() if i["id"] == invoice_id), None)
+    if not inv:
+        return jsonify({}), 404
+    return jsonify({"id": inv["id"], "photo": inv.get("photo", "")})
+
+
+@app.route("/admin/invoices/<invoice_id>/delete", methods=["POST"])
+@admin_required
+def admin_invoice_delete(invoice_id):
+    invoices = [i for i in load_invoices() if i["id"] != invoice_id]
+    save_invoices(invoices)
+    return jsonify({"success": True})
+
+
+@app.route("/admin/invoices/<invoice_id>/photo", methods=["POST"])
+@admin_required
+def admin_invoice_photo(invoice_id):
+    """Admin-side photo upload (when editing on desktop)."""
+    file = request.files.get("photo")
+    if not file or not allowed_file(file.filename):
+        return jsonify({"success": False, "message": "Invalid file"}), 400
+    ext = file.filename.rsplit(".", 1)[1].lower()
+    filename = f"invoice_{invoice_id}_{uuid.uuid4().hex[:8]}.{ext}"
+    file.save(os.path.join(UPLOAD_FOLDER, filename))
+    url = url_for("static", filename=f"uploads/{filename}", _external=False)
+    return jsonify({"success": True, "photo": url})
+
+
+def _inv_qr_token(invoice_id):
+    msg = f"invqr:{invoice_id}".encode()
+    return hmac.new(app.secret_key.encode(), msg, hashlib.sha256).hexdigest()[:20]
+
+
+@app.route("/admin/invoices/<invoice_id>/qr")
+@admin_required
+def admin_invoice_qr(invoice_id):
+    """Return a public phone-upload URL for snapping the invoice photo."""
+    token = _inv_qr_token(invoice_id)
+    path = url_for("invoice_qr_upload", invoice_id=invoice_id, token=token)
+    url = (PUBLIC_BASE_URL + path) if PUBLIC_BASE_URL else request.url_root.rstrip("/") + path
+    return jsonify({"success": True, "url": url})
+
+
+@app.route("/invoice-photo/<invoice_id>", methods=["GET"])
+def invoice_qr_upload(invoice_id):
+    if not hmac.compare_digest(_inv_qr_token(invoice_id), request.args.get("token", "")):
+        return "Invalid or expired link.", 403
+    return render_template("admin/invoice_photo_upload.html", invoice_id=invoice_id,
+                           token=request.args.get("token", ""))
+
+
+@app.route("/invoice-photo/<invoice_id>", methods=["POST"])
+def invoice_qr_upload_save(invoice_id):
+    if not hmac.compare_digest(_inv_qr_token(invoice_id), request.form.get("token", "")):
+        return jsonify({"success": False, "message": "Invalid link."}), 403
+    file = request.files.get("photo")
+    if not file or not allowed_file(file.filename):
+        return jsonify({"success": False, "message": "Invalid file"}), 400
+    ext = file.filename.rsplit(".", 1)[1].lower()
+    filename = f"invoice_{invoice_id}_{uuid.uuid4().hex[:8]}.{ext}"
+    file.save(os.path.join(UPLOAD_FOLDER, filename))
+    url = url_for("static", filename=f"uploads/{filename}", _external=False)
+    # Attach to the invoice if it exists
+    invoices = load_invoices()
+    inv = next((i for i in invoices if i["id"] == invoice_id), None)
+    if inv:
+        inv["photo"] = url
+        save_invoices(invoices)
+    return jsonify({"success": True, "photo": url})
+
+
+@app.route("/api/admin/product-lookup")
+@admin_required
+def admin_product_lookup():
+    """Search products to auto-fill an invoice line (like AutoRx 'Search Item')."""
+    q = request.args.get("q", "").strip().lower()
+    if not q:
+        return jsonify([])
+    results = []
+    for p in get_products():
+        if q in p["name"].lower() or q in str(p.get("description", "")).lower():
+            results.append({
+                "id": p["id"], "name": p["name"],
+                "cost": p.get("price", 0), "category": p["category"],
+            })
+        if len(results) >= 12:
+            break
+    return jsonify(results)
+
+
+@app.route("/api/admin/find-invoices-for-product")
+@admin_required
+def admin_find_invoices_for_product():
+    """Find which saved invoices contain a product (by name)."""
+    q = request.args.get("q", "").strip().lower()
+    if not q:
+        return jsonify([])
+    out = []
+    for inv in load_invoices():
+        for item in inv.get("items", []):
+            if q in str(item.get("description", "")).lower():
+                out.append({
+                    "invoice_id": inv["id"],
+                    "invoice_no": inv.get("invoice_no", ""),
+                    "supplier":   inv.get("supplier", ""),
+                    "date":       inv.get("date", ""),
+                    "description": item.get("description", ""),
+                    "qty":        item.get("qty", ""),
+                    "lot":        item.get("lot", ""),
+                    "expiry":     item.get("expiry", ""),
+                })
+    return jsonify(out)
+
+
 @app.route("/admin/orders")
 @admin_required
 def admin_orders():

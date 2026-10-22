@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ 'Edit' if invoice else 'New' }} Invoice – Leeds Admin</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --purple: #7B2FBE; --purple-light: #9B59D0; --purple-dark: #561F87;
+            --purple-deep: #3A1060; --purple-pale: #F3E8FF;
+            --gray-50: #faf9fc; --gray-100: #f2eef8; --gray-200: #e4daf0;
+            --gray-600: #5b5170; --gray-700: #3d3356; --gray-900: #1a1230;
+            --red: #dc2626; --green: #16a34a; --blue: #2563eb;
+            --shadow: 0 2px 8px rgba(90,30,150,0.10); --shadow-lg: 0 8px 30px rgba(90,30,150,0.16);
+        }
+        body { font-family: 'Inter', sans-serif; background: var(--gray-50); color: var(--gray-900); }
+        a { text-decoration: none; color: inherit; }
+
+        .topbar { background: var(--purple-deep); color: #fff; padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; position: sticky; top: 0; z-index: 50; }
+        .topbar .left { display: flex; align-items: center; gap: 14px; }
+        .topbar a.back { color: rgba(255,255,255,.85); font-weight: 700; font-size: 0.88rem; }
+        .topbar h1 { font-size: 1.1rem; font-weight: 800; }
+        .topbar .actions { display: flex; gap: 10px; }
+        .tbtn { border: none; border-radius: 8px; padding: 9px 16px; font-weight: 700; font-size: 0.85rem; cursor: pointer; font-family: inherit; }
+        .tbtn-search { background: #fff; color: var(--purple-dark); }
+        .tbtn-save { background: var(--green); color: #fff; }
+        .tbtn-save:disabled { opacity: 0.6; }
+
+        .wrap { padding: 20px; max-width: 1200px; margin: 0 auto; }
+
+        /* Header card */
+        .inv-head { background: #fff; border-radius: 14px; box-shadow: var(--shadow); padding: 18px 20px; margin-bottom: 16px; display: grid; grid-template-columns: 1fr 1fr 320px; gap: 16px; }
+        @media (max-width: 900px) { .inv-head { grid-template-columns: 1fr; } }
+        .fld { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
+        .fld label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--gray-600); }
+        .fld input { padding: 9px 11px; border: 1.5px solid var(--gray-200); border-radius: 8px; font-size: 0.9rem; font-family: inherit; }
+        .fld input:focus { outline: none; border-color: var(--purple); }
+        .amount-big { font-size: 1.4rem; font-weight: 800; color: var(--purple); }
+
+        /* Photo box */
+        .photo-box { border: 2px dashed var(--gray-200); border-radius: 12px; padding: 14px; text-align: center; }
+        .photo-box img { max-width: 100%; border-radius: 8px; margin-bottom: 10px; max-height: 200px; }
+        .photo-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+        .pbtn { border: none; border-radius: 8px; padding: 8px 14px; font-weight: 700; font-size: 0.8rem; cursor: pointer; font-family: inherit; }
+        .pbtn-up { background: var(--purple); color: #fff; }
+        .pbtn-qr { background: #dbeafe; color: var(--blue); }
+        #photoInput { display: none; }
+
+        /* Items table */
+        .items-card { background: #fff; border-radius: 14px; box-shadow: var(--shadow); overflow-x: auto; margin-bottom: 16px; }
+        table { width: 100%; border-collapse: collapse; min-width: 980px; }
+        th { background: var(--purple); color: #fff; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; padding: 10px 8px; text-align: left; white-space: nowrap; }
+        td { padding: 6px 8px; border-bottom: 1px solid var(--gray-100); vertical-align: middle; }
+        td input { width: 100%; padding: 7px 8px; border: 1px solid var(--gray-200); border-radius: 6px; font-size: 0.84rem; font-family: inherit; }
+        td input:focus { outline: none; border-color: var(--purple); }
+        .col-num { width: 36px; text-align: center; color: var(--gray-600); font-weight: 700; }
+        .w-desc { min-width: 220px; } .w-sm { width: 80px; } .w-md { width: 100px; } .w-xs { width: 64px; }
+        .row-del { background: #fee2e2; color: var(--red); border: none; border-radius: 6px; width: 28px; height: 28px; cursor: pointer; font-weight: 700; }
+        .matched { font-size: 0.64rem; color: var(--green); font-weight: 700; }
+
+        .add-row { padding: 12px 16px; }
+        .add-row button { background: var(--purple-pale); color: var(--purple-dark); border: none; border-radius: 8px; padding: 9px 16px; font-weight: 700; font-size: 0.84rem; cursor: pointer; font-family: inherit; }
+
+        /* Totals + apply */
+        .foot { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; align-items: flex-end; }
+        .totals { background: #fff; border-radius: 14px; box-shadow: var(--shadow); padding: 16px 20px; min-width: 260px; }
+        .totals .row { display: flex; justify-content: space-between; font-size: 0.88rem; margin-bottom: 7px; }
+        .totals .row.grand { font-weight: 800; font-size: 1.05rem; border-top: 2px solid var(--gray-200); padding-top: 8px; margin-top: 4px; }
+        .apply-box { background: #fff; border-radius: 14px; box-shadow: var(--shadow); padding: 16px 20px; }
+        .apply-box label { display: flex; align-items: center; gap: 8px; font-size: 0.86rem; font-weight: 600; }
+        .apply-box .hint { font-size: 0.74rem; color: var(--gray-600); margin-top: 6px; max-width: 320px; }
+
+        /* Search modal */
+        .modal-ov { position: fixed; inset: 0; background: rgba(26,18,48,.6); z-index: 500; display: none; align-items: flex-start; justify-content: center; padding: 40px 16px; }
+        .modal-ov.open { display: flex; }
+        .modal { background: #fff; border-radius: 14px; width: 100%; max-width: 480px; overflow: hidden; }
+        .modal-head { padding: 16px 18px; border-bottom: 1px solid var(--gray-100); }
+        .modal-head input { width: 100%; padding: 11px 14px; border: 1.5px solid var(--gray-200); border-radius: 10px; font-size: 1rem; font-family: inherit; }
+        .modal-list { max-height: 50vh; overflow-y: auto; }
+        .sug { padding: 12px 18px; border-bottom: 1px solid var(--gray-100); cursor: pointer; }
+        .sug:hover { background: var(--purple-pale); }
+        .sug .nm { font-weight: 700; font-size: 0.9rem; }
+        .sug .mt { font-size: 0.76rem; color: var(--gray-600); }
+        .msg { text-align: center; font-weight: 700; padding: 8px; }
+        .msg.ok { color: var(--green); } .msg.err { color: var(--red); }
+    </style>
+</head>
+<body data-inv-id="{{ invoice.id if invoice else '' }}">
+
+<div class="topbar">
+    <div class="left">
+        <a class="back" href="{{ url_for('admin_invoices') }}">← Invoices</a>
+        <h1>{{ 'Edit Invoice' if invoice else 'New Invoice' }}</h1>
+    </div>
+    <div class="actions">
+        <button class="tbtn tbtn-search" onclick="openSearch()">🔍 Search Item</button>
+        <button class="tbtn tbtn-save" id="saveBtn" onclick="saveInvoice()">💾 Save Invoice</button>
+    </div>
+</div>
+
+<div class="wrap">
+    <div class="msg" id="msg"></div>
+
+    <!-- Header -->
+    <div class="inv-head">
+        <div>
+            <div class="fld"><label>Pharmacy</label><input id="h_pharmacy" value="{{ invoice.pharmacy if invoice else 'LEEDS PHARMACY LTD' }}"></div>
+            <div class="fld"><label>Supplier</label><input id="h_supplier" value="{{ invoice.supplier if invoice else '' }}" placeholder="e.g. A1-CLASSIC"></div>
+            <div class="fld"><label>Amount</label><div class="amount-big" id="amountBig">$0.00</div></div>
+        </div>
+        <div>
+            <div class="fld"><label>Invoice No</label><input id="h_invoice_no" value="{{ invoice.invoice_no if invoice else '' }}"></div>
+            <div class="fld"><label>Order No</label><input id="h_order_no" value="{{ invoice.order_no if invoice else '' }}"></div>
+            <div class="fld"><label>Date</label><input id="h_date" type="date" value="{{ invoice.date if invoice else '' }}"></div>
+            <div class="fld"><label>Due Date</label><input id="h_due_date" type="date" value="{{ invoice.due_date if invoice else '' }}"></div>
+        </div>
+        <div class="photo-box">
+            <div id="photoWrap">
+                {% if invoice and invoice.photo %}<img id="photoImg" src="{{ invoice.photo }}" alt="Invoice photo">{% endif %}
+            </div>
+            <div style="font-size:0.78rem;color:var(--gray-600);margin-bottom:8px;">📷 Invoice photo</div>
+            <div class="photo-actions">
+                <input type="file" id="photoInput" accept="image/*" onchange="uploadPhoto(this)">
+                <button class="pbtn pbtn-up" onclick="document.getElementById('photoInput').click()">Upload</button>
+                <button class="pbtn pbtn-qr" onclick="showInvoiceQR()">📱 Scan with Phone</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Items -->
+    <div class="items-card">
+        <table>
+            <thead>
+                <tr>
+                    <th class="col-num">#</th>
+                    <th class="w-desc">Description</th>
+                    <th>Qty</th><th>Cost</th><th>Tax</th>
+                    <th>Extended</th><th>Lot #</th><th>Expiry</th>
+                    <th>Disc %</th><th></th>
+                </tr>
+            </thead>
+            <tbody id="itemsBody"></tbody>
+        </table>
+        <div class="add-row"><button onclick="addRow()">+ Add Item Row</button></div>
+    </div>
+
+    <!-- Footer -->
+    <div class="foot">
+        <div class="apply-box">
+            <label><input type="checkbox" id="applyStock"> Update stock &amp; expiry when I save</label>
+            <div class="hint">When checked, each matched item's quantity is added to that product's stock and its expiry date is recorded. Leave unchecked to just save the invoice.</div>
+        </div>
+        <div class="totals">
+            <div class="row"><span>Sub Total</span><span id="tSub">$0.00</span></div>
+            <div class="row"><span>Discount</span><span id="tDisc">$0.00</span></div>
+            <div class="row grand"><span>Invoice Total</span><span id="tGrand">$0.00</span></div>
+        </div>
+    </div>
+</div>
+
+<!-- Search modal -->
+<div class="modal-ov" id="searchModal" onclick="if(event.target===this)closeSearch()">
+    <div class="modal">
+        <div class="modal-head"><input id="searchInput" placeholder="Search a product to add…" oninput="runSearch(this.value)"></div>
+        <div class="modal-list" id="searchResults"></div>
+    </div>
+</div>
+
+<!-- QR modal (in-page, so it isn't blocked by popup blockers) -->
+<div class="modal-ov" id="qrModal" onclick="if(event.target===this)closeQR()">
+    <div class="modal" style="max-width:340px;text-align:center;">
+        <div style="padding:20px 20px 10px;">
+            <h3 style="font-size:1.1rem;font-weight:800;margin-bottom:4px;">📱 Scan to add photo</h3>
+            <p style="font-size:0.82rem;color:var(--gray-600);margin-bottom:16px;">Scan with your phone camera, then take a photo of the invoice.</p>
+            <div id="qrHolder" style="display:inline-block;padding:12px;border:1px solid var(--gray-200);border-radius:12px;"></div>
+            <div id="qrMsg" style="font-size:0.78rem;color:var(--gray-600);margin-top:12px;"></div>
+            <button onclick="closeQR()" style="margin-top:14px;background:var(--purple);color:#fff;border:none;border-radius:10px;padding:10px 24px;font-weight:700;cursor:pointer;font-family:inherit;">Done</button>
+        </div>
+    </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+
+<script>
+    let INV_ID = document.body.dataset.invId;
+    const existing = {{ (invoice.items if invoice else [])|tojson }};
+
+    function money(n) { return '$' + (Number(n) || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+
+    function rowHtml(it) {
+        it = it || {};
+        return `<tr data-pid="${it.product_id || ''}">
+            <td class="col-num"></td>
+            <td class="w-desc"><input class="c-desc" value="${(it.description||'').replace(/"/g,'&quot;')}" placeholder="Item name">
+                ${it.product_id ? '<div class="matched">✓ linked to product</div>' : ''}</td>
+            <td class="w-xs"><input class="c-qty" type="number" min="0" value="${it.qty||''}" oninput="recalc()"></td>
+            <td class="w-sm"><input class="c-cost" type="number" step="0.01" value="${it.cost||''}" oninput="recalc()"></td>
+            <td class="w-sm"><input class="c-tax" type="number" step="0.01" value="${it.tax||''}"></td>
+            <td class="w-md"><input class="c-ext" value="${it.extended||''}" readonly style="background:#f7f5fb;"></td>
+            <td class="w-sm"><input class="c-lot" value="${(it.lot||'').replace(/"/g,'&quot;')}" placeholder="Lot"></td>
+            <td class="w-md"><input class="c-exp" type="date" value="${it.expiry||''}"></td>
+            <td class="w-xs"><input class="c-disc" type="number" step="0.01" value="${it.disc||''}" oninput="recalc()"></td>
+            <td><button class="row-del" onclick="this.closest('tr').remove(); renumber(); recalc();">✕</button></td>
+        </tr>`;
+    }
+
+    function addRow(it) {
+        document.getElementById('itemsBody').insertAdjacentHTML('beforeend', rowHtml(it));
+        renumber(); recalc();
+    }
+    function renumber() {
+        document.querySelectorAll('#itemsBody tr').forEach((tr, i) => tr.querySelector('.col-num').textContent = i + 1);
+    }
+    function recalc() {
+        let sub = 0, disc = 0;
+        document.querySelectorAll('#itemsBody tr').forEach(tr => {
+            const qty = parseFloat(tr.querySelector('.c-qty').value) || 0;
+            const cost = parseFloat(tr.querySelector('.c-cost').value) || 0;
+            const dpct = parseFloat(tr.querySelector('.c-disc').value) || 0;
+            const line = qty * cost;
+            const lineDisc = line * (dpct / 100);
+            const ext = line - lineDisc;
+            tr.querySelector('.c-ext').value = ext.toFixed(2);
+            sub += line; disc += lineDisc;
+        });
+        document.getElementById('tSub').textContent = money(sub);
+        document.getElementById('tDisc').textContent = money(disc);
+        document.getElementById('tGrand').textContent = money(sub - disc);
+        document.getElementById('amountBig').textContent = money(sub - disc);
+    }
+
+    // ----- Search / autofill -----
+    function openSearch() { document.getElementById('searchModal').classList.add('open'); document.getElementById('searchInput').focus(); }
+    function closeSearch() { document.getElementById('searchModal').classList.remove('open'); }
+    let sTimer = null;
+    function runSearch(q) {
+        clearTimeout(sTimer);
+        if (!q.trim()) { document.getElementById('searchResults').innerHTML = ''; return; }
+        sTimer = setTimeout(() => {
+            fetch('/api/admin/product-lookup?q=' + encodeURIComponent(q))
+                .then(r => r.json())
+                .then(items => {
+                    document.getElementById('searchResults').innerHTML = items.length
+                        ? items.map(p => `<div class="sug" onclick='pickProduct(${JSON.stringify(p)})'>
+                             <div class="nm">${p.name}</div><div class="mt">${p.category} · cost ${money(p.cost)}</div></div>`).join('')
+                        : '<div class="msg">No products found</div>';
+                });
+        }, 150);
+    }
+    function pickProduct(p) {
+        addRow({ description: p.name, cost: p.cost, product_id: p.id });
+        closeSearch();
+        document.getElementById('searchInput').value = '';
+        document.getElementById('searchResults').innerHTML = '';
+    }
+
+    // ----- Photo -----
+    function uploadPhoto(input) {
+        if (!input.files[0]) return;
+        if (!INV_ID) { msg('Save the invoice once first, then add a photo.', false); return; }
+        const fd = new FormData(); fd.append('photo', input.files[0]);
+        fetch(`/admin/invoices/${INV_ID}/photo`, { method: 'POST', body: fd })
+            .then(r => r.json()).then(d => { if (d.success) setPhoto(d.photo); });
+    }
+    function setPhoto(url) {
+        document.getElementById('photoWrap').innerHTML = `<img id="photoImg" src="${url}?t=${Date.now()}" alt="Invoice photo">`;
+    }
+    function closeQR() { document.getElementById('qrModal').classList.remove('open'); }
+
+    async function showInvoiceQR() {
+        // Open the modal immediately with a loading note
+        const modal = document.getElementById('qrModal');
+        const holder = document.getElementById('qrHolder');
+        const qmsg = document.getElementById('qrMsg');
+        holder.innerHTML = '';
+        qmsg.textContent = 'Preparing…';
+        modal.classList.add('open');
+
+        // A QR needs a saved invoice id — auto-save if this is a new one
+        if (!INV_ID) {
+            qmsg.textContent = 'Saving invoice first…';
+            const ok = await doSave(false);
+            if (!ok) { qmsg.textContent = 'Could not save invoice. Add a supplier/item and try again.'; return; }
+        }
+
+        try {
+            const d = await fetch(`/admin/invoices/${INV_ID}/qr`).then(r => r.json());
+            if (!d.success) { qmsg.textContent = 'Could not generate QR.'; return; }
+            holder.innerHTML = '';
+            new QRCode(holder, { text: d.url, width: 230, height: 230, correctLevel: QRCode.CorrectLevel.M });
+            qmsg.textContent = 'On your phone, scan this with the camera, then take the photo.';
+            startPhotoPolling();
+        } catch (e) {
+            qmsg.textContent = 'Network error generating QR.';
+        }
+    }
+
+    // While the QR modal is open, watch for the phone's uploaded photo
+    let pollTimer = null;
+    function startPhotoPolling() {
+        clearInterval(pollTimer);
+        pollTimer = setInterval(async () => {
+            if (!document.getElementById('qrModal').classList.contains('open')) { clearInterval(pollTimer); return; }
+            try {
+                const d = await fetch(`/admin/invoices/${INV_ID}/json`).then(r => r.json());
+                if (d && d.photo) {
+                    setPhoto(d.photo);
+                    document.getElementById('qrMsg').innerHTML = '✓ Photo received! It’s attached. You can close this and edit the details.';
+                    clearInterval(pollTimer);
+                }
+            } catch (e) {}
+        }, 2500);
+    }
+
+    // ----- Save -----
+    function msg(t, ok) { const m = document.getElementById('msg'); m.textContent = t; m.className = 'msg ' + (ok ? 'ok' : 'err'); }
+
+    function collect() {
+        const items = [];
+        document.querySelectorAll('#itemsBody tr').forEach(tr => {
+            const desc = tr.querySelector('.c-desc').value.trim();
+            if (!desc) return;
+            items.push({
+                description: desc,
+                qty: tr.querySelector('.c-qty').value,
+                cost: tr.querySelector('.c-cost').value,
+                tax: tr.querySelector('.c-tax').value,
+                extended: tr.querySelector('.c-ext').value,
+                lot: tr.querySelector('.c-lot').value,
+                expiry: tr.querySelector('.c-exp').value,
+                disc: tr.querySelector('.c-disc').value,
+                product_id: tr.dataset.pid ? parseInt(tr.dataset.pid) : null,
+            });
+        });
+        return {
+            id: INV_ID || null,
+            pharmacy: document.getElementById('h_pharmacy').value,
+            supplier: document.getElementById('h_supplier').value,
+            invoice_no: document.getElementById('h_invoice_no').value,
+            order_no: document.getElementById('h_order_no').value,
+            date: document.getElementById('h_date').value,
+            due_date: document.getElementById('h_due_date').value,
+            photo: document.getElementById('photoImg') ? document.getElementById('photoImg').getAttribute('src').split('?')[0] : '',
+            items: items,
+            totals: { sub: document.getElementById('tSub').textContent, grand: document.getElementById('tGrand').textContent },
+            apply_to_stock: document.getElementById('applyStock').checked,
+        };
+    }
+
+    // Core save — returns true/false. redirect=true navigates to the saved invoice.
+    async function doSave(redirect) {
+        try {
+            const d = await fetch('/admin/invoices/save', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(collect())
+            }).then(r => r.json());
+            if (!d.success) return false;
+            if (!INV_ID) {
+                INV_ID = d.id;                      // adopt new id in place
+                document.body.dataset.invId = d.id;
+                history.replaceState(null, '', '/admin/invoices/' + d.id);
+            }
+            if (redirect) setTimeout(() => location.href = '/admin/invoices/' + INV_ID, 600);
+            return true;
+        } catch (e) { return false; }
+    }
+
+    function saveInvoice() {
+        const btn = document.getElementById('saveBtn');
+        btn.disabled = true; btn.textContent = 'Saving…';
+        doSave(false).then(ok => {
+            if (ok) msg('✓ Invoice saved' + (document.getElementById('applyStock').checked ? ' and stock updated.' : '.'), true);
+            else msg('Save failed.', false);
+            btn.disabled = false; btn.textContent = '💾 Save Invoice';
+        });
+    }
+
+    // Init
+    if (existing && existing.length) { existing.forEach(addRow); } else { addRow(); addRow(); addRow(); }
+
+    // If this is a brand-new invoice reached via "New Invoice", lead with the QR
+    // so the user can photograph the invoice first, then edit it later in Retrieve.
+    if (!INV_ID && new URLSearchParams(location.search).get('scan') === '1') {
+        showInvoiceQR();
+    }
+</script>
+</body>
+</html>
