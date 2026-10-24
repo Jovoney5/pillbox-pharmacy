@@ -46,7 +46,9 @@
         .sidebar-divider { border: none; border-top: 1px solid rgba(255,255,255,0.12); margin: 16px 0; }
 
         /* Main content */
-        .admin-main { flex: 1; padding: 32px; overflow-x: auto; }
+        /* No overflow here — it would scope position:sticky and stop the search
+           bar from pinning. Wide tables scroll via their own wrapper below. */
+        .admin-main { flex: 1; padding: 32px; min-width: 0; }
         .admin-header {
             display: flex; justify-content: space-between; align-items: center;
             margin-bottom: 28px; flex-wrap: wrap; gap: 14px;
@@ -95,10 +97,14 @@
         .alert-error { background: #fee2e2; color: #991b1b; border-left: 4px solid var(--red); }
 
         /* Table */
-        .table-card { background: white; border-radius: 14px; box-shadow: var(--shadow); overflow: hidden; }
+        .table-card { background: white; border-radius: 14px; box-shadow: var(--shadow); }
         .table-top {
             display: flex; justify-content: space-between; align-items: center;
             padding: 18px 22px; border-bottom: 1px solid var(--gray-200); flex-wrap: wrap; gap: 12px;
+            /* Stay pinned to the top while the product list scrolls, so you can
+               always type to search without scrolling back up. */
+            position: sticky; top: 0; z-index: 20;
+            background: white; border-radius: 14px 14px 0 0;
         }
         .table-top h2 { font-size: 1rem; font-weight: 700; }
         .search-input {
@@ -134,6 +140,17 @@
             border-radius: 10px; padding: 2px 8px;
             font-size: 0.72rem; font-weight: 700; margin-left: 4px;
         }
+
+        /* On-hand stepper */
+        .stock-ctl { display: inline-flex; align-items: center; gap: 4px; border: 1.5px solid var(--gray-200); border-radius: 8px; padding: 2px; background: #fff; }
+        .stock-ctl.oh-out { border-color: #fca5a5; background: #fef2f2; }
+        .stock-ctl.oh-low { border-color: #fcd34d; background: #fffbeb; }
+        .stock-ctl.oh-in  { border-color: #bbf7d0; background: #f0fdf4; }
+        .stock-step { width: 24px; height: 24px; border: none; border-radius: 6px; background: var(--purple-pale); color: var(--purple-dark); font-weight: 800; font-size: 1rem; line-height: 1; cursor: pointer; }
+        .stock-step:hover { background: #e9d5ff; }
+        .stock-num { width: 48px; text-align: center; border: none; background: transparent; font-weight: 700; font-size: 0.86rem; font-family: inherit; color: var(--gray-900); -moz-appearance: textfield; }
+        .stock-num::-webkit-outer-spin-button, .stock-num::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        .stock-num:focus { outline: none; }
 
         /* Discount quick-set */
         .disc-select {
@@ -174,6 +191,7 @@
                 <span class="icon">➕</span><span>Add Product</span>
             </a>
             <a href="{{ url_for('admin_invoices') }}"><span class="icon">🧾</span><span>Invoices</span></a>
+            <a href="{{ url_for('admin_expired') }}"><span class="icon">⚠️</span><span>Expired</span></a>
             <a href="{{ url_for('admin_orders') }}">
                 <span class="icon">📋</span><span>Orders</span>
             </a>
@@ -245,7 +263,8 @@
                         <th>Image</th>
                         <th>Product</th>
                         <th>Category</th>
-                        <th>Base Price</th>
+                        <th>Selling Price</th>
+                        <th>On Hand</th>
                         <th>Discount</th>
                         <th>Sale Price</th>
                         <th>Actions</th>
@@ -253,7 +272,7 @@
                 </thead>
                 <tbody>
                 {% for p in products %}
-                <tr data-name="{{ p.name.lower() }}">
+                <tr data-name="{{ p.name.lower() }}" data-pid="{{ p.id }}">
                     <td><img src="{{ p.img }}" alt="{{ p.name }}" class="product-thumb"></td>
                     <td>
                         <div class="product-name-cell">{{ p.name }}</div>
@@ -261,6 +280,15 @@
                     </td>
                     <td><span class="cat-badge">{{ categories.get(p.category, p.category) }}</span></td>
                     <td class="price-cell">JMD {{ "%.2f"|format(p.original_price) }}</td>
+                    <td>
+                        {% set oh = p.get('stock') if p.get('stock') is not none else 0 %}
+                        <div class="stock-ctl {{ 'oh-out' if oh == 0 else ('oh-low' if oh <= 5 else 'oh-in') }}" id="stock-ctl-{{ p.id }}">
+                            <button type="button" class="stock-step" onclick="stepStock({{ p.id }}, -1)" title="Reduce by 1">−</button>
+                            <input type="number" class="stock-num" min="0" value="{{ oh }}"
+                                   onchange="setStock({{ p.id }}, this.value)" aria-label="On hand for {{ p.name }}">
+                            <button type="button" class="stock-step" onclick="stepStock({{ p.id }}, 1)" title="Add 1">+</button>
+                        </div>
+                    </td>
                     <td>
                         <select class="disc-select" onchange="setDiscount({{ p.id }}, this.value, this)">
                             {% for d in discount_options %}
@@ -295,12 +323,42 @@
 </div>
 
 <script>
-// Live table search
+// Live table search — uses the same ranked backend as the invoice search,
+// so it matches by name, generic name, description (last resort) and keywords.
+let _tableSearchTimer = null;
 document.getElementById('tableSearch').addEventListener('input', function() {
-    const q = this.value.toLowerCase();
-    document.querySelectorAll('#productTable tbody tr').forEach(row => {
-        row.style.display = row.dataset.name.includes(q) ? '' : 'none';
-    });
+    const q = this.value.trim();
+    clearTimeout(_tableSearchTimer);
+    const rows = document.querySelectorAll('#productTable tbody tr');
+
+    if (!q) { rows.forEach(r => r.style.display = ''); return; }
+
+    _tableSearchTimer = setTimeout(() => {
+        fetch('/api/admin/product-lookup?q=' + encodeURIComponent(q))
+            .then(r => r.json())
+            .then(items => {
+                // Rank order from the API; map product id -> position so matches sort to the top.
+                const order = new Map(items.map((p, i) => [String(p.id), i]));
+                const tbody = document.querySelector('#productTable tbody');
+                const matched = [];
+                rows.forEach(row => {
+                    if (order.has(row.dataset.pid)) {
+                        row.style.display = '';
+                        matched.push(row);
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+                // Reorder visible rows to match the ranked results.
+                matched.sort((a, b) => order.get(a.dataset.pid) - order.get(b.dataset.pid));
+                matched.forEach(row => tbody.appendChild(row));
+            })
+            .catch(() => {
+                // Fallback to a simple name filter if the request fails.
+                const ql = q.toLowerCase();
+                rows.forEach(r => r.style.display = r.dataset.name.includes(ql) ? '' : 'none');
+            });
+    }, 150);
 });
 
 // Quick discount update via AJAX
@@ -319,6 +377,31 @@ function setDiscount(productId, discount, selectEl) {
                 cell.innerHTML = `JMD ${orig.toFixed(2)}`;
             }
         });
+}
+
+// ── On-hand stock ──
+function _paintStock(productId, value) {
+    const ctl = document.getElementById(`stock-ctl-${productId}`);
+    if (!ctl) return;
+    ctl.querySelector('.stock-num').value = value;
+    ctl.classList.remove('oh-out', 'oh-low', 'oh-in');
+    ctl.classList.add(value == 0 ? 'oh-out' : (value <= 5 ? 'oh-low' : 'oh-in'));
+}
+// Set absolute on-hand value (from typing a number)
+function setStock(productId, value) {
+    const fd = new FormData();
+    fd.append('stock', Math.max(0, parseInt(value) || 0));
+    fetch(`/admin/product/stock/${productId}`, { method: 'POST', body: fd })
+        .then(r => r.json())
+        .then(data => { if (data.success) _paintStock(productId, data.stock); });
+}
+// Nudge on-hand up/down by one (the − / + buttons)
+function stepStock(productId, delta) {
+    const fd = new FormData();
+    fd.append('delta', delta);
+    fetch(`/admin/product/stock/${productId}`, { method: 'POST', body: fd })
+        .then(r => r.json())
+        .then(data => { if (data.success) _paintStock(productId, data.stock); });
 }
 
 // ── QR photo upload ──

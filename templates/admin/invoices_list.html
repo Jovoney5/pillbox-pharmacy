@@ -33,8 +33,13 @@
         .find-box h3 { font-size: 0.95rem; margin-bottom: 10px; }
         .find-box input { width: 100%; max-width: 420px; padding: 10px 14px; border: 1.5px solid var(--gray-200); border-radius: 10px; font-size: 0.92rem; font-family: inherit; }
         .find-results { margin-top: 12px; }
-        .find-row { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--gray-100); font-size: 0.86rem; }
-        .find-row a { color: var(--purple); font-weight: 700; }
+        .find-row { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 11px 10px; border-bottom: 1px solid var(--gray-100); font-size: 0.86rem; border-radius: 8px; }
+        .find-row:hover { background: var(--purple-pale); }
+        .find-left { flex: 1; min-width: 0; }
+        .find-right { display: flex; flex-direction: column; align-items: flex-end; text-align: right; gap: 1px; flex-shrink: 0; }
+        .find-right .fr-inv { font-weight: 800; color: var(--purple-dark); font-size: 0.9rem; }
+        .find-right .fr-sup { font-weight: 600; color: var(--gray-700); font-size: 0.8rem; }
+        .find-right .fr-date { font-weight: 700; color: var(--green); font-size: 0.78rem; }
         .tag-exp { font-weight: 700; } .tag-exp.bad { color: var(--red); } .tag-exp.soon { color: #d97706; } .tag-exp.good { color: var(--green); }
 
         .inv-card { background: #fff; border-radius: 12px; box-shadow: var(--shadow); overflow: hidden; }
@@ -42,9 +47,29 @@
         th { background: var(--gray-100); text-align: left; padding: 11px 16px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--gray-600); }
         td { padding: 12px 16px; border-bottom: 1px solid var(--gray-100); font-size: 0.88rem; }
         tr:hover td { background: var(--gray-50); }
-        .btn-open { background: var(--purple-pale); color: var(--purple-dark); border-radius: 8px; padding: 6px 14px; font-weight: 700; font-size: 0.8rem; }
+        .act { display: inline-flex; gap: 6px; }
+        .btn-act { border: none; border-radius: 8px; padding: 6px 12px; font-weight: 700; font-size: 0.78rem; cursor: pointer; font-family: inherit; }
+        .btn-view { background: #dbeafe; color: #1d4ed8; }
+        .btn-edit { background: var(--purple-pale); color: var(--purple-dark); }
+        .btn-del  { background: #fee2e2; color: var(--red); }
         .empty { padding: 40px; text-align: center; color: var(--gray-600); }
-        .newbtn { background: var(--purple); color: #fff; border-radius: 8px; padding: 9px 16px; font-weight: 700; font-size: 0.85rem; float: right; }
+        .newbtn { background: var(--purple); color: #fff; border-radius: 8px; padding: 9px 16px; font-weight: 700; font-size: 0.85rem; }
+
+        .toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+        .toolbar .spacer { flex: 1; }
+        .sortsel { padding: 8px 12px; border: 1.5px solid var(--gray-200); border-radius: 8px; font-size: 0.84rem; font-family: inherit; background: #fff; cursor: pointer; }
+        .printbtn { background: #fff; border: 1.5px solid var(--gray-200); color: var(--gray-700); border-radius: 8px; padding: 8px 14px; font-weight: 700; font-size: 0.84rem; cursor: pointer; font-family: inherit; }
+        .printbtn:hover { border-color: var(--purple); color: var(--purple-dark); }
+
+        /* Print: only the invoice table, nothing else */
+        @media print {
+            .sidebar, .find-box, .toolbar, .newbtn, .act { display: none !important; }
+            .admin-main { padding: 0; }
+            body { background: #fff; }
+            .inv-card { box-shadow: none; }
+            .print-title { display: block !important; }
+        }
+        .print-title { display: none; }
         @media (max-width: 760px) { .sidebar { width: 64px; padding: 20px 8px; } .sidebar-logo p, .sidebar-nav span { display: none; } .admin-main { padding: 18px 14px; } }
     </style>
 </head>
@@ -57,6 +82,7 @@
             <a href="{{ url_for('admin_dashboard') }}"><span class="icon">📦</span><span>Products</span></a>
             <a href="{{ url_for('admin_add_product') }}"><span class="icon">➕</span><span>Add Product</span></a>
             <a href="{{ url_for('admin_invoices') }}" class="active"><span class="icon">🧾</span><span>Invoices</span></a>
+            <a href="{{ url_for('admin_expired') }}"><span class="icon">⚠️</span><span>Expired</span></a>
             <a href="{{ url_for('admin_orders') }}"><span class="icon">📋</span><span>Orders</span></a>
             <a href="{{ url_for('admin_stats') }}"><span class="icon">📈</span><span>Statistics</span></a>
             <a href="{{ url_for('admin_analytics') }}"><span class="icon">🟢</span><span>Live Analytics</span></a>
@@ -71,7 +97,7 @@
     </aside>
 
     <div class="admin-main">
-        <h1>📂 Saved Invoices <a href="{{ url_for('admin_invoice_new') }}" class="newbtn">+ New Invoice</a></h1>
+        <h1 class="print-title">📂 Saved Invoices</h1>
 
         <!-- Find product -->
         <div class="find-box">
@@ -80,10 +106,23 @@
             <div class="find-results" id="findResults"></div>
         </div>
 
+        <!-- Toolbar: sort + print + new -->
+        <div class="toolbar">
+            <label for="sortSel" style="font-size:0.84rem;font-weight:700;color:var(--gray-600);">Sort by</label>
+            <select id="sortSel" class="sortsel" onchange="location.href='{{ url_for('admin_invoices_list') }}?sort='+this.value">
+                <option value="date_desc" {{ 'selected' if sort == 'date_desc' else '' }}>Date (newest first)</option>
+                <option value="date_asc"  {{ 'selected' if sort == 'date_asc'  else '' }}>Date (oldest first)</option>
+                <option value="supplier"  {{ 'selected' if sort == 'supplier'  else '' }}>Supplier (A–Z)</option>
+            </select>
+            <div class="spacer"></div>
+            <button class="printbtn" onclick="window.print()">🖨️ Print / Download list</button>
+            <a href="{{ url_for('admin_invoice_new') }}" class="newbtn">+ New Invoice</a>
+        </div>
+
         <div class="inv-card">
             {% if invoices %}
             <table>
-                <thead><tr><th>Invoice #</th><th>Supplier</th><th>Date</th><th>Items</th><th>Total</th><th>Photo</th><th></th></tr></thead>
+                <thead><tr><th>Invoice #</th><th>Supplier</th><th>Date</th><th>Items</th><th>Tax</th><th>Total</th><th></th></tr></thead>
                 <tbody>
                 {% for inv in invoices %}
                 <tr>
@@ -91,9 +130,13 @@
                     <td>{{ inv.supplier or '—' }}</td>
                     <td>{{ inv.date or '—' }}</td>
                     <td>{{ inv['items']|length }}</td>
+                    <td>{{ inv.totals.tax if inv.totals and inv.totals.tax else '—' }}</td>
                     <td>{{ inv.totals.grand if inv.totals else '—' }}</td>
-                    <td>{% if inv.photo %}📷{% else %}—{% endif %}</td>
-                    <td><a href="{{ url_for('admin_invoice_edit', invoice_id=inv.id) }}" class="btn-open">Open / Edit</a></td>
+                    <td class="act">
+                        <a href="{{ url_for('admin_invoice_view', invoice_id=inv.id) }}" class="btn-act btn-view">View</a>
+                        <a href="{{ url_for('admin_invoice_edit', invoice_id=inv.id) }}" class="btn-act btn-edit">Edit</a>
+                        <button class="btn-act btn-del" onclick="delInvoice('{{ inv.id }}', '{{ inv.invoice_no or 'this invoice' }}')">Delete</button>
+                    </td>
                 </tr>
                 {% endfor %}
                 </tbody>
@@ -106,6 +149,14 @@
 </div>
 
 <script>
+    // Format an ISO date (YYYY-MM-DD) as "Oct-15-2026". Returns the input unchanged if it can't parse.
+    const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    function fmtDate(s) {
+        if (!s) return s;
+        const m = String(s).match(/^(\d{4})-(\d{2})-(\d{2})/);
+        if (!m) return s;
+        return `${MONTHS[+m[2] - 1]}-${m[3]}-${m[1]}`;
+    }
     let ft = null;
     function runFind(q) {
         clearTimeout(ft);
@@ -124,16 +175,28 @@
                             const days = Math.round((d - today) / 86400000);
                             const cls = days < 0 ? 'bad' : (days < 90 ? 'soon' : 'good');
                             const txt = days < 0 ? 'EXPIRED' : (days + ' days left');
-                            exp = `<span class="tag-exp ${cls}">${r.expiry} (${txt})</span>`;
+                            exp = `<span class="tag-exp ${cls}">${fmtDate(r.expiry)} (${txt})</span>`;
                         }
-                        return `<div class="find-row">
-                            <span>${r.description} — qty ${r.qty||'?'} ${r.lot?('· lot '+r.lot):''} ${exp}</span>
-                            <a href="/admin/invoices/${r.invoice_id}">${r.invoice_no||'invoice'} (${r.supplier||''}) →</a>
-                        </div>`;
+                        return `<a class="find-row" href="/admin/invoices/${r.invoice_id}/view">
+                            <span class="find-left">${r.description} — qty ${r.qty||'?'} ${r.lot?('· lot '+r.lot):''} ${exp}</span>
+                            <span class="find-right">
+                                <span class="fr-inv">${r.invoice_no||'invoice'}</span>
+                                <span class="fr-sup">${r.supplier||'—'}</span>
+                                <span class="fr-date">📅 ${r.date ? fmtDate(r.date) : 'no date'}</span>
+                            </span>
+                        </a>`;
                     }).join('');
                 });
         }, 160);
     }
+    // Delete an invoice from the list
+    function delInvoice(id, label) {
+        if (!confirm('Delete ' + label + '? This cannot be undone.')) return;
+        fetch('/admin/invoices/' + id + '/delete', { method: 'POST' })
+            .then(r => r.json())
+            .then(d => { if (d.success) location.reload(); else alert('Delete failed.'); });
+    }
+
     // auto-focus find box if arrived via "Find Product"
     if (new URLSearchParams(location.search).get('find')) document.getElementById('findInput').focus();
 </script>

@@ -1,0 +1,1418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Leeds Pharmacy {% endblock %}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --purple:       #7B2FBE;
+            --purple-light: #9B59D0;
+            --purple-dark:  #561F87;
+            --purple-deep:  #3A1060;
+            --purple-pale:  #F3E8FF;
+            --white:        #ffffff;
+            --gray-50:      #faf9fc;
+            --gray-100:     #f2eef8;
+            --gray-200:     #e4daf0;
+            --gray-600:     #5b5170;
+            --gray-700:     #3d3356;
+            --gray-900:     #1a1230;
+            --red:          #dc2626;
+            --shadow:       0 2px 8px rgba(90,30,150,0.10);
+            --shadow-lg:    0 8px 30px rgba(90,30,150,0.16);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            color: var(--gray-900);
+            background: var(--gray-50);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        a { text-decoration: none; color: inherit; }
+        ul { list-style: none; }
+        img { max-width: 100%; }
+
+        /* ════════════════════════════════════════
+           TOP BAR  (admin link + location)
+        ════════════════════════════════════════ */
+        .top-bar {
+            background: var(--purple-deep);
+            font-size: 0.78rem;
+            color: rgba(255,255,255,0.7);
+            padding: 5px 20px;
+        }
+        .top-bar-inner {
+            max-width: 1200px;
+            margin: auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        .top-bar a { color: rgba(255,255,255,0.7); transition: color 0.15s; }
+        .top-bar a:hover { color: white; }
+        .top-bar-right { display: flex; align-items: center; gap: 16px; }
+        .top-bar .admin-link {
+            background: rgba(255,255,255,0.12);
+            border-radius: 4px;
+            padding: 2px 10px;
+            color: rgba(255,255,255,0.9);
+            font-weight: 600;
+        }
+        .top-bar .admin-link:hover { background: rgba(255,255,255,0.2); color: white; }
+
+        /* ════════════════════════════════════════
+           NAV
+        ════════════════════════════════════════ */
+        nav {
+            background: var(--purple);
+            color: var(--white);
+            position: sticky;
+            top: 0;
+            z-index: 200;
+            box-shadow: 0 2px 12px rgba(90,30,150,0.28);
+        }
+        .nav-inner {
+            max-width: 1200px;
+            margin: auto;
+            padding: 0 20px;
+            display: grid;
+            grid-template-columns: auto 1fr auto auto;
+            align-items: center;
+            height: 72px;
+            gap: 16px;
+        }
+
+        /* Logo + Location block */
+        .nav-brand { display: flex; flex-direction: column; justify-content: center; gap: 2px; flex-shrink: 0; }
+        .nav-logo-link { display: flex; align-items: center; }
+        .nav-logo-link img {
+            height: 50px;
+            width: auto;
+            border-radius: 8px;
+            object-fit: contain;
+            background: white;
+            padding: 3px;
+        }
+        .nav-location {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+            position: relative;
+            padding-left: 2px;
+        }
+        .nav-location-pin { font-size: 0.72rem; opacity: 0.75; }
+        .nav-location-text {
+            font-size: 0.72rem;
+            font-weight: 600;
+            color: rgba(255,255,255,0.9);
+            text-decoration: underline;
+            text-underline-offset: 2px;
+            white-space: nowrap;
+        }
+        .nav-location-chevron {
+            font-size: 0.6rem;
+            opacity: 0.7;
+            transition: transform 0.2s;
+        }
+        .nav-location:hover .nav-location-text { color: white; }
+        .nav-location:hover .nav-location-chevron { transform: rotate(180deg); }
+
+        /* Location dropdown */
+        .location-dropdown {
+            position: absolute;
+            top: calc(100% + 8px);
+            left: 0;
+            background: white;
+            border-radius: 14px;
+            box-shadow: var(--shadow-lg);
+            width: 310px;
+            padding: 0;
+            overflow: hidden;
+            display: none;
+            z-index: 300;
+            border: 1px solid var(--gray-200);
+        }
+        .location-dropdown.open { display: block; animation: dropIn 0.18s ease; }
+        @keyframes dropIn { from { opacity:0; transform: translateY(-6px); } to { opacity:1; transform: translateY(0); } }
+        .loc-header {
+            background: var(--purple-pale);
+            padding: 14px 18px 10px;
+            border-bottom: 1px solid var(--gray-200);
+        }
+        .loc-header h4 { font-size: 0.82rem; font-weight: 700; color: var(--purple-dark); }
+        .loc-header p { font-size: 0.72rem; color: var(--gray-600); margin-top: 2px; }
+        .loc-detect-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+            padding: 11px 18px;
+            border: none;
+            background: white;
+            cursor: pointer;
+            font-size: 0.84rem;
+            font-weight: 600;
+            color: var(--purple);
+            border-bottom: 1px solid var(--gray-100);
+            transition: background 0.15s;
+            font-family: inherit;
+        }
+        .loc-detect-btn:hover { background: var(--purple-pale); }
+        .loc-divider { padding: 8px 18px 4px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--gray-600); }
+        .loc-option {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 11px 18px;
+            cursor: pointer;
+            transition: background 0.15s;
+            border: none;
+            background: white;
+            width: 100%;
+            font-family: inherit;
+            text-align: left;
+        }
+        .loc-option:hover { background: var(--gray-50); }
+        .loc-option.active { background: var(--purple-pale); }
+        .loc-option .loc-dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: var(--gray-200);
+            flex-shrink: 0;
+        }
+        .loc-option.active .loc-dot { background: var(--purple); }
+        .loc-option .loc-name { font-size: 0.88rem; font-weight: 600; color: var(--gray-900); }
+        .loc-option .loc-dist { font-size: 0.74rem; color: var(--gray-600); margin-top: 1px; }
+        .loc-footer { padding: 10px 18px; font-size: 0.74rem; color: var(--gray-600); border-top: 1px solid var(--gray-100); }
+
+        /* Center nav links */
+        .nav-links { display: flex; gap: 2px; align-items: center; justify-content: center; }
+        .nav-links a {
+            padding: 8px 13px;
+            border-radius: 6px;
+            font-weight: 500;
+            font-size: 0.9rem;
+            transition: background 0.18s;
+            color: rgba(255,255,255,0.88);
+            white-space: nowrap;
+        }
+        .nav-links a:hover { background: rgba(255,255,255,0.15); color: white; }
+
+        /* Search */
+        .nav-search { position: relative; }
+        .nav-search form { display: flex; }
+        .nav-search input {
+            padding: 8px 16px;
+            border-radius: 22px 0 0 22px;
+            border: none;
+            outline: none;
+            font-size: 0.86rem;
+            width: 240px;
+            color: var(--gray-900);
+        }
+        .nav-search button {
+            padding: 8px 14px;
+            border: none;
+            background: var(--purple-dark);
+            color: white;
+            border-radius: 0 22px 22px 0;
+            cursor: pointer;
+            font-size: 0.88rem;
+            transition: background 0.18s;
+        }
+        .nav-search button:hover { background: var(--purple-deep); }
+
+        /* ── Autocomplete dropdown ── */
+        .search-suggestions {
+            position: absolute;
+            top: calc(100% + 6px);
+            left: 0;
+            width: 360px;
+            background: white;
+            border-radius: 14px;
+            box-shadow: 0 12px 40px rgba(58,16,96,0.22);
+            border: 1px solid var(--gray-200);
+            overflow: hidden;
+            z-index: 500;
+            display: none;
+        }
+        .search-suggestions.open { display: block; animation: dropIn 0.16s ease; }
+        .suggest-header {
+            padding: 10px 14px 6px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+            color: var(--gray-600);
+            border-bottom: 1px solid var(--gray-100);
+        }
+        .suggest-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 14px;
+            cursor: pointer;
+            transition: background 0.12s;
+            text-decoration: none;
+            color: var(--gray-900);
+        }
+        .suggest-item:hover, .suggest-item.highlighted { background: var(--purple-pale); }
+        .suggest-item:not(:last-child) { border-bottom: 1px solid var(--gray-100); }
+        .suggest-img {
+            width: 52px;
+            height: 52px;
+            border-radius: 8px;
+            object-fit: cover;
+            flex-shrink: 0;
+            border: 1px solid var(--gray-200);
+        }
+        .suggest-info { flex: 1; min-width: 0; }
+        .suggest-name {
+            font-weight: 600;
+            font-size: 0.88rem;
+            color: var(--gray-900);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .suggest-name mark {
+            background: none;
+            color: var(--purple);
+            font-weight: 800;
+        }
+        .suggest-cat {
+            font-size: 0.72rem;
+            color: var(--gray-600);
+            margin-top: 2px;
+        }
+        .suggest-price {
+            font-size: 0.88rem;
+            font-weight: 700;
+            color: var(--purple);
+            flex-shrink: 0;
+            text-align: right;
+        }
+        .suggest-orig {
+            font-size: 0.7rem;
+            text-decoration: line-through;
+            color: var(--gray-600);
+            font-weight: 400;
+        }
+        .suggest-disc {
+            font-size: 0.68rem;
+            background: #dcfce7;
+            color: #16a34a;
+            border-radius: 6px;
+            padding: 1px 5px;
+            font-weight: 700;
+        }
+        .suggest-footer {
+            padding: 9px 14px;
+            background: var(--gray-100);
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--purple);
+            cursor: pointer;
+            text-align: center;
+            transition: background 0.12s;
+        }
+        .suggest-footer:hover { background: var(--purple-pale); }
+        .suggest-empty {
+            padding: 18px 14px;
+            text-align: center;
+            font-size: 0.85rem;
+            color: var(--gray-600);
+        }
+
+        /* Right cluster */
+        .nav-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+
+        /* Cart */
+        .nav-cart {
+            background: white;
+            color: var(--purple-dark);
+            padding: 8px 18px;
+            border-radius: 22px;
+            font-weight: 700;
+            font-size: 0.88rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: background 0.18s, box-shadow 0.18s;
+            white-space: nowrap;
+            border: none;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+        }
+        .nav-cart:hover { background: var(--purple-pale); box-shadow: 0 4px 14px rgba(0,0,0,0.22); }
+        .cart-badge {
+            background: var(--red);
+            color: #fff;
+            border-radius: 50%;
+            width: 18px; height: 18px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.68rem;
+            font-weight: 700;
+        }
+
+        /* Auth / Profile cluster */
+        .nav-auth { display: flex; align-items: center; gap: 8px; }
+
+        .btn-signin {
+            background: transparent;
+            border: 1.5px solid rgba(255,255,255,0.45);
+            color: rgba(255,255,255,0.9);
+            padding: 7px 15px;
+            border-radius: 22px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.18s;
+            white-space: nowrap;
+            font-family: inherit;
+        }
+        .btn-signin:hover { border-color: white; color: white; background: rgba(255,255,255,0.1); }
+
+        .btn-register {
+            background: white;
+            color: var(--purple-dark);
+            border: none;
+            padding: 8px 16px;
+            border-radius: 22px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.18s;
+            white-space: nowrap;
+            font-family: inherit;
+        }
+        .btn-register:hover { background: var(--purple-pale); transform: translateY(-1px); }
+
+        .btn-schedule {
+            background: transparent;
+            border: 1.5px solid rgba(255,255,255,0.6);
+            color: white;
+            padding: 7px 15px;
+            border-radius: 22px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.18s;
+            white-space: nowrap;
+            font-family: inherit;
+        }
+        .btn-schedule:hover { background: rgba(255,255,255,0.15); border-color: white; }
+
+        /* ── APPOINTMENT MODAL ── */
+        .appt-overlay {
+            position: fixed; inset: 0;
+            background: rgba(26,18,48,0.6);
+            z-index: 1000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(4px);
+            padding: 20px;
+        }
+        .appt-overlay.open { display: flex; }
+        .appt-modal {
+            background: white;
+            border-radius: 20px;
+            width: 100%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 24px 60px rgba(58,16,96,0.3);
+            animation: apptIn 0.22s ease;
+        }
+        @keyframes apptIn { from { opacity:0; transform:translateY(-16px) scale(0.97); } to { opacity:1; transform:none; } }
+        .appt-modal-header {
+            background: linear-gradient(135deg, var(--purple-deep), var(--purple));
+            padding: 24px 28px 20px;
+            border-radius: 20px 20px 0 0;
+            color: white;
+            position: relative;
+        }
+        .appt-modal-header h2 { font-size: 1.2rem; font-weight: 800; margin-bottom: 4px; }
+        .appt-modal-header p  { font-size: 0.82rem; opacity: 0.82; }
+        .appt-modal-close {
+            position: absolute; top: 14px; right: 16px;
+            background: rgba(255,255,255,0.2); border: none; color: white;
+            border-radius: 50%; width: 30px; height: 30px;
+            font-size: 1rem; cursor: pointer; display: flex; align-items: center; justify-content: center;
+        }
+        .appt-modal-close:hover { background: rgba(255,255,255,0.35); }
+        .appt-modal-body { padding: 24px 28px 28px; }
+
+        .appt-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+        .appt-form-full { grid-column: 1 / -1; }
+        .appt-field { display: flex; flex-direction: column; gap: 5px; }
+        .appt-field label {
+            font-size: 0.75rem; font-weight: 700; color: var(--gray-700);
+            text-transform: uppercase; letter-spacing: 0.04em;
+        }
+        .appt-field input, .appt-field select, .appt-field textarea {
+            padding: 10px 12px; border: 1.5px solid var(--gray-200);
+            border-radius: 9px; font-size: 0.9rem; outline: none;
+            font-family: inherit; color: var(--gray-900);
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+        .appt-field input:focus, .appt-field select:focus, .appt-field textarea:focus {
+            border-color: var(--purple); box-shadow: 0 0 0 3px rgba(123,47,190,0.1);
+        }
+        .appt-field textarea { resize: none; min-height: 72px; }
+
+        /* Branch cards */
+        .branch-cards { display: flex; flex-direction: column; gap: 8px; }
+        .branch-card {
+            border: 2px solid var(--gray-200); border-radius: 10px;
+            padding: 12px 14px; cursor: pointer;
+            transition: border-color 0.15s, background 0.15s;
+            display: flex; align-items: flex-start; gap: 12px;
+            background: white;
+        }
+        .branch-card:hover { border-color: var(--purple-light); background: var(--purple-pale); }
+        .branch-card.selected { border-color: var(--purple); background: var(--purple-pale); }
+        .branch-radio {
+            width: 18px; height: 18px; border-radius: 50%;
+            border: 2px solid var(--gray-200); flex-shrink: 0; margin-top: 2px;
+            transition: all 0.15s;
+        }
+        .branch-card.selected .branch-radio {
+            border-color: var(--purple); background: var(--purple);
+            box-shadow: inset 0 0 0 3px white;
+        }
+        .branch-info .branch-name { font-size: 0.88rem; font-weight: 700; color: var(--gray-900); }
+        .branch-info .branch-addr { font-size: 0.76rem; color: var(--gray-600); margin-top: 2px; }
+
+        .appt-submit-btn {
+            width: 100%; padding: 13px; background: var(--purple); color: white;
+            border: none; border-radius: 10px; font-size: 0.98rem; font-weight: 700;
+            cursor: pointer; font-family: inherit; transition: background 0.18s;
+            margin-top: 20px;
+        }
+        .appt-submit-btn:hover { background: var(--purple-light); }
+        .appt-submit-btn:disabled { opacity: 0.6; pointer-events: none; }
+
+        .appt-success {
+            text-align: center; padding: 32px 20px;
+            display: none; flex-direction: column; align-items: center; gap: 12px;
+        }
+        .appt-success.visible { display: flex; }
+        .appt-success-icon {
+            width: 64px; height: 64px; border-radius: 50%;
+            background: #dcfce7; border: 3px solid #16a34a;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.8rem; color: #16a34a;
+        }
+        .appt-success h3 { font-size: 1.2rem; font-weight: 800; color: var(--gray-900); }
+        .appt-success p  { font-size: 0.88rem; color: var(--gray-600); line-height: 1.6; }
+        .appt-ref-badge {
+            background: var(--purple-pale); color: var(--purple-dark);
+            border-radius: 8px; padding: 8px 18px;
+            font-family: monospace; font-size: 1.1rem; font-weight: 800;
+            letter-spacing: 0.1em;
+        }
+
+        /* Profile avatar button */
+        .profile-btn {
+            position: relative;
+            cursor: pointer;
+        }
+        .profile-avatar {
+            width: 38px; height: 38px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2.5px solid rgba(255,255,255,0.5);
+            transition: border-color 0.18s;
+            display: block;
+        }
+        .profile-avatar-placeholder {
+            width: 38px; height: 38px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.18);
+            border: 2.5px solid rgba(255,255,255,0.35);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            color: white;
+            transition: all 0.18s;
+        }
+        .profile-btn:hover .profile-avatar,
+        .profile-btn:hover .profile-avatar-placeholder {
+            border-color: white;
+        }
+
+        /* Profile dropdown */
+        .profile-dropdown {
+            position: absolute;
+            top: calc(100% + 10px);
+            right: 0;
+            background: white;
+            border-radius: 14px;
+            box-shadow: var(--shadow-lg);
+            width: 240px;
+            display: none;
+            z-index: 300;
+            overflow: hidden;
+            border: 1px solid var(--gray-200);
+        }
+        .profile-dropdown.open { display: block; animation: dropIn 0.18s ease; }
+        .profile-drop-header {
+            padding: 16px 18px 12px;
+            background: linear-gradient(135deg, var(--purple-deep), var(--purple));
+            color: white;
+        }
+        .profile-drop-header .user-name { font-weight: 700; font-size: 0.95rem; }
+        .profile-drop-header .user-email { font-size: 0.75rem; opacity: 0.75; margin-top: 2px; }
+        .profile-drop-avatar-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+        .profile-drop-avatar {
+            width: 44px; height: 44px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid rgba(255,255,255,0.5);
+        }
+        .profile-drop-avatar-placeholder {
+            width: 44px; height: 44px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+        }
+        .upload-avatar-label {
+            display: inline-block;
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: rgba(255,255,255,0.75);
+            cursor: pointer;
+            border: 1px solid rgba(255,255,255,0.35);
+            border-radius: 10px;
+            padding: 3px 9px;
+            margin-top: 4px;
+            transition: all 0.15s;
+        }
+        .upload-avatar-label:hover { background: rgba(255,255,255,0.15); color: white; }
+        #avatarFileInput { display: none; }
+        .profile-drop-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 11px 18px;
+            font-size: 0.86rem;
+            color: var(--gray-700);
+            transition: background 0.15s;
+            border: none;
+            background: none;
+            width: 100%;
+            cursor: pointer;
+            font-family: inherit;
+            text-align: left;
+        }
+        .profile-drop-item:hover { background: var(--gray-50); color: var(--purple); }
+        .profile-drop-item.danger:hover { background: #fee2e2; color: var(--red); }
+        .profile-drop-divider { height: 1px; background: var(--gray-100); margin: 4px 0; }
+
+        /* ════════════════════════════════════════
+           ALERTS
+        ════════════════════════════════════════ */
+        .flash-messages { max-width: 1200px; margin: 16px auto 0; padding: 0 20px; }
+        .alert { padding: 12px 18px; border-radius: 8px; margin-bottom: 10px; font-size: 0.9rem; font-weight: 500; }
+        .alert-success { background: var(--purple-pale); color: var(--purple-dark); border-left: 4px solid var(--purple); }
+        .alert-error   { background: #fee2e2; color: #991b1b; border-left: 4px solid var(--red); }
+
+        /* ════════════════════════════════════════
+           MAIN
+        ════════════════════════════════════════ */
+        main { flex: 1; max-width: 1200px; margin: 0 auto; padding: 30px 20px; width: 100%; }
+
+        /* ════════════════════════════════════════
+           BUTTONS (global)
+        ════════════════════════════════════════ */
+        .btn {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 10px 22px; border-radius: 8px; font-weight: 600;
+            font-size: 0.92rem; cursor: pointer; border: none; transition: all 0.18s;
+        }
+        .btn-primary { background: var(--purple); color: white; }
+        .btn-primary:hover { background: var(--purple-light); }
+        .btn-outline { background: transparent; border: 2px solid var(--purple); color: var(--purple); }
+        .btn-outline:hover { background: var(--purple); color: white; }
+        .btn-danger { background: var(--red); color: white; }
+        .btn-danger:hover { opacity: 0.88; }
+        .btn-sm { padding: 7px 14px; font-size: 0.82rem; }
+
+        .card { background: white; border-radius: 12px; box-shadow: var(--shadow); overflow: hidden; }
+
+        /* ════════════════════════════════════════
+           TRUST STRIP
+        ════════════════════════════════════════ */
+        .trust-strip { background: var(--purple-deep); padding: 22px 20px; }
+        .trust-strip-inner {
+            max-width: 1200px;
+            margin: auto;
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+        .trust-item {
+            display: flex; align-items: center; gap: 10px;
+            color: rgba(255,255,255,0.88); cursor: pointer;
+            transition: color 0.18s; text-decoration: none;
+        }
+        .trust-item:hover { color: white; }
+        .trust-icon { font-size: 1.4rem; }
+        .trust-text strong { display: block; font-size: 0.88rem; font-weight: 700; color: white; }
+        .trust-text span { font-size: 0.76rem; opacity: 0.72; }
+
+        /* ════════════════════════════════════════
+           FOOTER
+        ════════════════════════════════════════ */
+        footer { background: var(--purple-deep); color: rgba(255,255,255,0.85); padding: 40px 20px 20px; margin-top: auto; }
+        .footer-inner {
+            max-width: 1200px; margin: auto;
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 30px; padding-bottom: 30px; border-bottom: 1px solid rgba(255,255,255,0.15);
+        }
+        .footer-col h4 { color: white; font-size: 1rem; margin-bottom: 12px; }
+        .footer-col p, .footer-col a { font-size: 0.88rem; line-height: 1.8; color: rgba(255,255,255,0.72); }
+        .footer-col a:hover { color: white; }
+        .footer-bottom { max-width: 1200px; margin: 16px auto 0; text-align: center; font-size: 0.82rem; color: rgba(255,255,255,0.5); }
+
+        /* ════════════════════════════════════════
+           MOBILE BOTTOM APP NAV
+        ════════════════════════════════════════ */
+        .bottom-nav {
+            display: none;
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            z-index: 400;
+            background: #ffffff;
+            border-top: 1px solid var(--gray-200);
+            box-shadow: 0 -2px 14px rgba(90,30,150,0.12);
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        .bottom-nav-inner {
+            display: flex;
+            align-items: stretch;
+            justify-content: space-around;
+        }
+        .bottom-nav-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            padding: 8px 4px;
+            color: var(--gray-600);
+            font-size: 0.68rem;
+            font-weight: 600;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-family: inherit;
+            position: relative;
+            transition: color 0.15s;
+        }
+        .bottom-nav-item .bn-icon { font-size: 1.35rem; line-height: 1; }
+        .bottom-nav-item.active { color: var(--purple); }
+        .bottom-nav-item:hover { color: var(--purple); }
+        .bottom-nav-badge {
+            position: absolute;
+            top: 4px;
+            right: 50%;
+            transform: translateX(16px);
+            background: var(--red);
+            color: #fff;
+            border-radius: 50%;
+            min-width: 17px; height: 17px;
+            padding: 0 4px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.62rem;
+            font-weight: 700;
+        }
+
+        /* ════════════════════════════════════════
+           RESPONSIVE
+        ════════════════════════════════════════ */
+        @media (max-width: 900px) {
+            .nav-inner { grid-template-columns: auto 1fr auto; height: auto; padding: 10px 16px; gap: 10px; flex-wrap: wrap; }
+            .nav-links { display: none; }
+            .nav-search input { width: 150px; }
+        }
+        @media (max-width: 600px) {
+            .btn-register, .btn-signin { display: none; }
+            .bottom-nav { display: block; }
+            /* keep footer/content clear of the fixed bar */
+            body { padding-bottom: 62px; }
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+<!-- ══ TOP BAR ══ -->
+<div class="top-bar">
+    <div class="top-bar-inner">
+        <span>Leeds Pharmacy </span>
+        <div class="top-bar-right">
+            <a href="{{ url_for('contact') }}">📞 (876) 555-1234</a>
+            {% if is_admin %}
+            <a href="{{ url_for('admin_dashboard') }}" class="admin-link">⚙️ Admin Dashboard</a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- ══ NAV ══ -->
+<nav>
+    <div class="nav-inner">
+
+        <!-- Brand: Logo + Location -->
+        <div class="nav-brand">
+            <a href="{{ url_for('index') }}" class="nav-logo-link">
+                <img src="{{ url_for('static', filename='screen.png') }}" alt="Leeds Pharmacy">
+            </a>
+            <div class="nav-location" id="locationBtn" onclick="toggleLocation(event)">
+                <span class="nav-location-pin">📍</span>
+                <span class="nav-location-text" id="locationLabel">Savanna-la-mar</span>
+                <span class="nav-location-chevron">▼</span>
+
+                <!-- Location dropdown -->
+                <div class="location-dropdown" id="locationDropdown">
+                    <div class="loc-header">
+                        <h4>Choose Your Location</h4>
+                        <p>We'll show the nearest delivery branch</p>
+                    </div>
+                    <button class="loc-detect-btn" onclick="detectLocation(event)">
+                        📡 Use My Current Location
+                    </button>
+                    <div class="loc-divider">Our Branches</div>
+                    <button class="loc-option active" data-loc="Savanna-la-mar" onclick="selectLocation(event, 'Savanna-la-mar', 'Main Branch — Head Office')">
+                        <span class="loc-dot"></span>
+                        <div>
+                            <div class="loc-name">Savanna-la-mar</div>
+                            <div class="loc-dist">Main Branch — Head Office</div>
+                        </div>
+                    </button>
+                    <button class="loc-option" data-loc="Montego Bay" onclick="selectLocation(event, 'Montego Bay', '~45 min delivery')">
+                        <span class="loc-dot"></span>
+                        <div>
+                            <div class="loc-name">Montego Bay</div>
+                            <div class="loc-dist">~45 min delivery</div>
+                        </div>
+                    </button>
+                    <button class="loc-option" data-loc="Kingston" onclick="selectLocation(event, 'Kingston', '~2.5 hr delivery')">
+                        <span class="loc-dot"></span>
+                        <div>
+                            <div class="loc-name">Kingston</div>
+                            <div class="loc-dist">~2.5 hr delivery</div>
+                        </div>
+                    </button>
+                    <button class="loc-option" data-loc="Mandeville" onclick="selectLocation(event, 'Mandeville', '~1 hr delivery')">
+                        <span class="loc-dot"></span>
+                        <div>
+                            <div class="loc-name">Mandeville</div>
+                            <div class="loc-dist">~1 hr delivery</div>
+                        </div>
+                    </button>
+                    <button class="loc-option" data-loc="Negril" onclick="selectLocation(event, 'Negril', '~30 min delivery')">
+                        <span class="loc-dot"></span>
+                        <div>
+                            <div class="loc-name">Negril</div>
+                            <div class="loc-dist">~30 min delivery</div>
+                        </div>
+                    </button>
+                    <div class="loc-footer">Delivery times are estimates from Savanna-la-mar.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Center: Links + Search -->
+        <div style="display:flex; flex-direction:column; gap:6px; align-items:center;">
+            <div class="nav-links">
+                <a href="{{ url_for('index') }}">Home</a>
+                <a href="{{ url_for('shop') }}">Shop</a>
+                <a href="{{ url_for('about') }}">About</a>
+                <a href="{{ url_for('contact') }}">Contact</a>
+            </div>
+            <div class="nav-search" id="searchWrap">
+                <form action="{{ url_for('shop') }}" method="get" id="searchForm" autocomplete="off">
+                    <input type="text" name="search" id="searchInput"
+                           placeholder="Search products..." aria-label="Search">
+                    <button type="submit">🔍</button>
+                </form>
+                <div class="search-suggestions" id="searchSuggestions"></div>
+            </div>
+        </div>
+
+        <!-- Right: Cart + Auth/Profile -->
+        <div class="nav-right">
+
+            <a href="{{ url_for('cart') }}" class="nav-cart">
+                🛒
+                {% if cart_count > 0 %}<span class="cart-badge">{{ cart_count }}</span>{% endif %}
+            </a>
+
+            {% if current_user %}
+            <!-- Logged-in: avatar + dropdown -->
+            <div class="profile-btn" id="profileBtn" onclick="toggleProfile(event)">
+                {% if current_user.avatar %}
+                <img class="profile-avatar"
+                     src="{{ url_for('static', filename='uploads/' + current_user.avatar) }}"
+                     alt="{{ current_user.name }}" id="navAvatarImg">
+                {% else %}
+                <div class="profile-avatar-placeholder" id="navAvatarPlaceholder">
+                    {{ current_user.name[0].upper() }}
+                </div>
+                {% endif %}
+
+                <div class="profile-dropdown" id="profileDropdown">
+                    <div class="profile-drop-header">
+                        <div class="profile-drop-avatar-row">
+                            {% if current_user.avatar %}
+                            <img class="profile-drop-avatar"
+                                 src="{{ url_for('static', filename='uploads/' + current_user.avatar) }}"
+                                 alt="{{ current_user.name }}" id="dropAvatarImg">
+                            {% else %}
+                            <div class="profile-drop-avatar-placeholder" id="dropAvatarPlaceholder">
+                                {{ current_user.name[0].upper() }}
+                            </div>
+                            {% endif %}
+                            <div>
+                                <div class="user-name">{{ current_user.name }}</div>
+                                <div class="user-email">{{ current_user.email }}</div>
+                                <label class="upload-avatar-label" for="avatarFileInput">
+                                    📷 Change photo
+                                </label>
+                            </div>
+                        </div>
+                        <input type="file" id="avatarFileInput" accept="image/*" onchange="uploadAvatar(this)">
+                    </div>
+                    <a href="{{ url_for('cart') }}" class="profile-drop-item">🛒 My Cart</a>
+                    <div class="profile-drop-divider"></div>
+                    <a href="{{ url_for('logout') }}" class="profile-drop-item danger">🚪 Sign Out</a>
+                </div>
+            </div>
+
+            {% else %}
+            <!-- Logged-out: sign in + register -->
+            <div class="nav-auth">
+                <a href="{{ url_for('login') }}" class="btn-signin">Sign In</a>
+                <button class="btn-schedule" onclick="openScheduler()">Book Appointment</button>
+                <a href="{{ url_for('register') }}" class="btn-register">Join Free</a>
+            </div>
+            {% endif %}
+
+        </div>
+    </div>
+</nav>
+
+<div class="flash-messages">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+            <div class="alert alert-{{ category }}">{{ message }}</div>
+        {% endfor %}
+    {% endwith %}
+</div>
+
+<main>
+    {% block content %}{% endblock %}
+</main>
+
+<div class="trust-strip">
+    <div class="trust-strip-inner">
+        <a href="{{ url_for('about') }}" class="trust-item">
+            <span class="trust-icon">🚚</span>
+            <div class="trust-text"><strong>Free Delivery</strong><span>On orders over JMD 5,000</span></div>
+        </a>
+        <a href="{{ url_for('shop') }}" class="trust-item">
+            <span class="trust-icon">💜</span>
+            <div class="trust-text"><strong>Best Prices</strong><span>Price-match guarantee</span></div>
+        </a>
+        <a href="{{ url_for('about') }}" class="trust-item">
+            <span class="trust-icon">🛡️</span>
+            <div class="trust-text"><strong>Trusted Quality</strong><span>Licensed &amp; certified</span></div>
+        </a>
+        <a href="{{ url_for('contact') }}" class="trust-item">
+            <span class="trust-icon">🕐</span>
+            <div class="trust-text"><strong>Extended Hours</strong><span>Open Mon–Sat 8am–9pm</span></div>
+        </a>
+        <a href="{{ url_for('about') }}" class="trust-item">
+            <span class="trust-icon">↩️</span>
+            <div class="trust-text"><strong>Easy Returns</strong><span>30-day return policy</span></div>
+        </a>
+    </div>
+</div>
+
+<footer>
+    <div class="footer-inner">
+        <div class="footer-col">
+            <h4>Leeds Pharmacy</h4>
+            <p>Your trusted neighbourhood pharmacy &amp; bookstore for health, wellness, books, and everyday essentials.</p>
+        </div>
+        <div class="footer-col">
+            <h4>Quick Links</h4>
+            <a href="{{ url_for('shop') }}?category=pharmacy">Pharmacy &amp; Health</a><br>
+            <a href="{{ url_for('shop') }}?category=personal_care">Personal Care</a><br>
+            <a href="{{ url_for('shop') }}?category=perfumes">Perfumes</a><br>
+            <a href="{{ url_for('shop') }}?category=books">Books</a><br>
+            <a href="{{ url_for('shop') }}?category=stationery">Stationery</a>
+        </div>
+        <div class="footer-col">
+            <h4>Customer Service</h4>
+            <a href="{{ url_for('contact') }}">Contact Us</a><br>
+            <a href="{{ url_for('about') }}">About Us</a><br>
+            <a href="#">Returns Policy</a><br>
+            <a href="#">Shipping Info</a>
+        </div>
+        <div class="footer-col">
+            <h4>Contact</h4>
+            <p>📍 Savanna-la-mar, Westmoreland, Jamaica</p>
+            <p>📞 (876) 555-1234</p>
+            <p>📧 hello@leedspharmacy.com</p>
+            <p>🕐 Mon–Sat: 8am – 9pm</p>
+        </div>
+    </div>
+    <div class="footer-bottom">
+        &copy; 2026 Leeds Pharmacy &amp; Book Store. All rights reserved.
+    </div>
+</footer>
+
+<!-- ══ MOBILE BOTTOM APP NAV ══ -->
+<nav class="bottom-nav">
+    <div class="bottom-nav-inner">
+        <a href="{{ url_for('index') }}"
+           class="bottom-nav-item {{ 'active' if request.endpoint == 'index' else '' }}">
+            <span class="bn-icon">🏠</span>
+            <span>Home</span>
+        </a>
+        <a href="{{ url_for('cart') }}"
+           class="bottom-nav-item {{ 'active' if request.endpoint == 'cart' else '' }}">
+            <span class="bn-icon">🛒</span>
+            {% if cart_count > 0 %}<span class="bottom-nav-badge">{{ cart_count }}</span>{% endif %}
+            <span>Cart</span>
+        </a>
+        <a href="tel:+18765551234" class="bottom-nav-item">
+            <span class="bn-icon">📞</span>
+            <span>Call Us</span>
+        </a>
+    </div>
+</nav>
+
+<!-- ══ APPOINTMENT MODAL ══ -->
+<div class="appt-overlay" id="apptOverlay" onclick="closeScheduler(event)">
+    <div class="appt-modal">
+        <div class="appt-modal-header">
+            <h2>Book an Appointment</h2>
+            <p>Visit us at one of our two Savanna-la-Mar locations</p>
+            <button class="appt-modal-close" onclick="closeScheduler()">&#10005;</button>
+        </div>
+        <div class="appt-modal-body">
+
+            <!-- Success state -->
+            <div class="appt-success" id="apptSuccess">
+                <div class="appt-success-icon">&#10003;</div>
+                <h3>Appointment Confirmed!</h3>
+                <p>Your appointment has been booked. Please keep your reference number — bring it when you visit.</p>
+                <div class="appt-ref-badge" id="apptRefCode"></div>
+                <p style="font-size:0.8rem;color:var(--gray-600);">Our team will be ready for you at the selected branch on your chosen date and time.</p>
+                <button class="appt-submit-btn" style="margin-top:10px;" onclick="resetScheduler()">Book Another</button>
+            </div>
+
+            <!-- Form state -->
+            <form id="apptForm" onsubmit="submitAppointment(event)">
+                <div class="appt-form-grid">
+
+                    <div class="appt-field appt-form-full">
+                        <label>Full Name *</label>
+                        <input type="text" name="appt_name" placeholder="Jane Brown" required>
+                    </div>
+
+                    <div class="appt-field">
+                        <label>Phone Number *</label>
+                        <input type="tel" name="appt_phone" placeholder="(876) 000-0000" required>
+                    </div>
+
+                    <div class="appt-field">
+                        <label>Email (optional)</label>
+                        <input type="email" name="appt_email" placeholder="jane@example.com">
+                    </div>
+
+                    <div class="appt-field">
+                        <label>Preferred Date *</label>
+                        <input type="date" name="appt_date" id="apptDate" required>
+                    </div>
+
+                    <div class="appt-field">
+                        <label>Preferred Time *</label>
+                        <select name="appt_time" required>
+                            <option value="">Select time</option>
+                            <option>8:00 AM</option><option>8:30 AM</option>
+                            <option>9:00 AM</option><option>9:30 AM</option>
+                            <option>10:00 AM</option><option>10:30 AM</option>
+                            <option>11:00 AM</option><option>11:30 AM</option>
+                            <option>12:00 PM</option><option>12:30 PM</option>
+                            <option>1:00 PM</option><option>1:30 PM</option>
+                            <option>2:00 PM</option><option>2:30 PM</option>
+                            <option>3:00 PM</option><option>3:30 PM</option>
+                            <option>4:00 PM</option><option>4:30 PM</option>
+                            <option>5:00 PM</option><option>5:30 PM</option>
+                            <option>6:00 PM</option><option>6:30 PM</option>
+                            <option>7:00 PM</option><option>7:30 PM</option>
+                            <option>8:00 PM</option>
+                        </select>
+                    </div>
+
+                    <div class="appt-field appt-form-full">
+                        <label>Reason for Visit *</label>
+                        <select name="appt_reason" required>
+                            <option value="">Select a reason</option>
+                            {% for r in appt_reasons %}
+                            <option>{{ r }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="appt-field appt-form-full">
+                        <label>Select Branch *</label>
+                        <input type="hidden" name="appt_branch" id="apptBranchInput">
+                        <div class="branch-cards">
+                            {% for b in branches %}
+                            <div class="branch-card {{ 'selected' if loop.index0 == 0 else '' }}"
+                                 id="branch-{{ b.id }}"
+                                 onclick="selectBranch('{{ b.id }}')">
+                                <div class="branch-radio"></div>
+                                <div class="branch-info">
+                                    <div class="branch-name">{{ b.name.split(' — ')[0] }}</div>
+                                    <div class="branch-addr">{{ b.name.split(' — ')[1] if ' — ' in b.name else b.name }}</div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="appt-field appt-form-full">
+                        <label>Additional Notes (optional)</label>
+                        <textarea name="appt_notes" placeholder="Any additional information for our team..."></textarea>
+                    </div>
+
+                </div>
+                <button type="submit" class="appt-submit-btn" id="apptSubmitBtn">
+                    Confirm Appointment
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ── Appointment Scheduler ──
+    // Pre-select first branch
+    document.getElementById('apptBranchInput').value = '{{ branches[0].id if branches else "" }}';
+
+    // Set minimum date to today
+    const apptDateInput = document.getElementById('apptDate');
+    if (apptDateInput) {
+        const today = new Date().toISOString().split('T')[0];
+        apptDateInput.min = today;
+    }
+
+    function openScheduler() {
+        document.getElementById('apptOverlay').classList.add('open');
+        document.getElementById('locationDropdown')?.classList.remove('open');
+        document.getElementById('profileDropdown')?.classList.remove('open');
+    }
+    function closeScheduler(e) {
+        if (!e || e.target === document.getElementById('apptOverlay')) {
+            document.getElementById('apptOverlay').classList.remove('open');
+        }
+    }
+    function selectBranch(id) {
+        document.querySelectorAll('.branch-card').forEach(c => c.classList.remove('selected'));
+        document.getElementById('branch-' + id)?.classList.add('selected');
+        document.getElementById('apptBranchInput').value = id;
+    }
+    function resetScheduler() {
+        document.getElementById('apptForm').reset();
+        document.getElementById('apptForm').style.display = '';
+        document.getElementById('apptSuccess').classList.remove('visible');
+        document.getElementById('apptBranchInput').value = '{{ branches[0].id if branches else "" }}';
+        selectBranch('{{ branches[0].id if branches else "" }}');
+    }
+    function submitAppointment(e) {
+        e.preventDefault();
+        const btn = document.getElementById('apptSubmitBtn');
+        btn.disabled = true;
+        btn.textContent = 'Booking...';
+        const fd = new FormData(e.target);
+        fetch('/book-appointment', { method: 'POST', body: fd })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('apptForm').style.display = 'none';
+                    document.getElementById('apptRefCode').textContent = data.id;
+                    document.getElementById('apptSuccess').classList.add('visible');
+                } else {
+                    alert(data.message);
+                    btn.disabled = false;
+                    btn.textContent = 'Confirm Appointment';
+                }
+            })
+            .catch(() => { btn.disabled = false; btn.textContent = 'Confirm Appointment'; });
+    }
+
+    // ══ AUTOCOMPLETE SEARCH ══════════════════════════════════════════════════
+    (function() {
+        const input    = document.getElementById('searchInput');
+        const box      = document.getElementById('searchSuggestions');
+        const form     = document.getElementById('searchForm');
+        let debounce   = null;
+        let lastQuery  = '';
+        let hlIndex    = -1;
+        let results    = [];
+
+        if (!input) return;
+
+        // Highlight matching characters in name
+        function highlight(text, query) {
+            const re = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+            return text.replace(re, '<mark>$1</mark>');
+        }
+
+        function formatPrice(p) {
+            return 'JMD ' + p.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        }
+
+        function render(items, q) {
+            results = items;
+            hlIndex = -1;
+            if (!items.length) {
+                box.innerHTML = `<div class="suggest-empty">No results for "<strong>${q}</strong>"</div>`;
+                box.classList.add('open');
+                return;
+            }
+            let html = `<div class="suggest-header">Suggestions for "${q}"</div>`;
+            items.forEach((p, i) => {
+                const disc = p.discount > 0
+                    ? `<div class="suggest-orig">${formatPrice(p.original_price)}</div>
+                       <span class="suggest-disc">-${p.discount}%</span>`
+                    : '';
+                html += `
+                <a class="suggest-item" href="${p.url}" data-idx="${i}">
+                    <img class="suggest-img" src="${p.img}" alt="${p.name}" loading="lazy">
+                    <div class="suggest-info">
+                        <div class="suggest-name">${highlight(p.name, q)}</div>
+                        <div class="suggest-cat">${p.category}</div>
+                    </div>
+                    <div class="suggest-price">
+                        ${disc}
+                        ${formatPrice(p.price)}
+                    </div>
+                </a>`;
+            });
+            html += `<div class="suggest-footer" onclick="submitSearch('${q}')">
+                        See all results for "<strong>${q}</strong>" →
+                     </div>`;
+            box.innerHTML = html;
+            box.classList.add('open');
+        }
+
+        function closeSuggestions() {
+            box.classList.remove('open');
+            hlIndex = -1;
+        }
+
+        function fetchSuggestions(q) {
+            if (q === lastQuery) return;
+            lastQuery = q;
+            if (q.length < 1) { closeSuggestions(); return; }
+            fetch(`/api/search-suggest?q=${encodeURIComponent(q)}`)
+                .then(r => r.json())
+                .then(data => render(data, q))
+                .catch(() => closeSuggestions());
+        }
+
+        input.addEventListener('input', function() {
+            clearTimeout(debounce);
+            const q = this.value.trim();
+            if (!q) { closeSuggestions(); return; }
+            debounce = setTimeout(() => fetchSuggestions(q), 160);
+        });
+
+        // Keyboard navigation
+        input.addEventListener('keydown', function(e) {
+            const items = box.querySelectorAll('.suggest-item');
+            if (!items.length) return;
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                hlIndex = Math.min(hlIndex + 1, items.length - 1);
+                items.forEach((el, i) => el.classList.toggle('highlighted', i === hlIndex));
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                hlIndex = Math.max(hlIndex - 1, -1);
+                items.forEach((el, i) => el.classList.toggle('highlighted', i === hlIndex));
+            } else if (e.key === 'Enter' && hlIndex >= 0) {
+                e.preventDefault();
+                items[hlIndex].click();
+            } else if (e.key === 'Escape') {
+                closeSuggestions();
+            }
+        });
+
+        // Close on outside click
+        document.addEventListener('click', function(e) {
+            if (!document.getElementById('searchWrap').contains(e.target)) {
+                closeSuggestions();
+            }
+        });
+
+        // Reopen on focus if there's a value
+        input.addEventListener('focus', function() {
+            if (this.value.trim().length >= 1) fetchSuggestions(this.value.trim());
+        });
+    })();
+
+    window.submitSearch = function(q) {
+        document.getElementById('searchInput').value = q;
+        document.getElementById('searchForm').submit();
+    };
+
+    // ── Flash dismiss ──
+    setTimeout(() => {
+        document.querySelectorAll('.alert').forEach(el => {
+            el.style.transition = 'opacity 0.5s';
+            el.style.opacity = '0';
+            setTimeout(() => el.remove(), 500);
+        });
+    }, 4000);
+
+    // ── Location dropdown ──
+    function toggleLocation(e) {
+        e.stopPropagation();
+        document.getElementById('locationDropdown').classList.toggle('open');
+        document.getElementById('profileDropdown')?.classList.remove('open');
+    }
+
+    function selectLocation(e, name, desc) {
+        e.stopPropagation();
+        document.getElementById('locationLabel').textContent = name;
+        document.querySelectorAll('.loc-option').forEach(b => {
+            b.classList.toggle('active', b.dataset.loc === name);
+        });
+        document.getElementById('locationDropdown').classList.remove('open');
+        showLocationToast(name, desc);
+    }
+
+    function detectLocation(e) {
+        e.stopPropagation();
+        const btn = e.currentTarget;
+        btn.textContent = '⏳ Detecting...';
+        if (!navigator.geolocation) {
+            btn.textContent = '📡 Use My Current Location';
+            return;
+        }
+        navigator.geolocation.getCurrentPosition(pos => {
+            // Default to nearest known branch (Savanna-la-mar for Jamaica context)
+            const name = 'Savanna-la-mar';
+            document.getElementById('locationLabel').textContent = name;
+            document.querySelectorAll('.loc-option').forEach(b => {
+                b.classList.toggle('active', b.dataset.loc === name);
+            });
+            btn.textContent = '📡 Use My Current Location';
+            document.getElementById('locationDropdown').classList.remove('open');
+            showLocationToast(name, 'Nearest branch detected!');
+        }, () => {
+            btn.textContent = '📡 Use My Current Location';
+        });
+    }
+
+    function showLocationToast(name, sub) {
+        const t = document.createElement('div');
+        t.style.cssText = `position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+            background:#3A1060;color:white;padding:12px 22px;border-radius:30px;
+            font-size:0.85rem;font-weight:600;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,0.3);
+            display:flex;align-items:center;gap:8px;`;
+        t.innerHTML = `<span>📍</span><span>${name} — ${sub}</span>`;
+        document.body.appendChild(t);
+        setTimeout(() => { t.style.opacity='0'; t.style.transition='opacity 0.4s'; setTimeout(() => t.remove(), 400); }, 3000);
+    }
+
+    // ── Profile dropdown ──
+    function toggleProfile(e) {
+        e.stopPropagation();
+        document.getElementById('profileDropdown')?.classList.toggle('open');
+        document.getElementById('locationDropdown')?.classList.remove('open');
+    }
+
+    // Close dropdowns on outside click
+    document.addEventListener('click', () => {
+        document.getElementById('locationDropdown')?.classList.remove('open');
+        document.getElementById('profileDropdown')?.classList.remove('open');
+    });
+
+    // ── Avatar upload ──
+    function uploadAvatar(input) {
+        if (!input.files[0]) return;
+        const fd = new FormData();
+        fd.append('avatar', input.files[0]);
+        fetch('/profile/avatar', { method: 'POST', body: fd })
+            .then(r => r.json())
+            .then(data => {
+                if (!data.success) return;
+                const url = `/static/uploads/${data.avatar}?t=${Date.now()}`;
+                // Update nav avatar
+                const navImg = document.getElementById('navAvatarImg');
+                const navPh  = document.getElementById('navAvatarPlaceholder');
+                if (navImg) { navImg.src = url; }
+                else if (navPh) {
+                    const img = document.createElement('img');
+                    img.className = 'profile-avatar';
+                    img.id = 'navAvatarImg';
+                    img.src = url;
+                    navPh.replaceWith(img);
+                }
+                // Update dropdown avatar
+                const dropImg = document.getElementById('dropAvatarImg');
+                const dropPh  = document.getElementById('dropAvatarPlaceholder');
+                if (dropImg) { dropImg.src = url; }
+                else if (dropPh) {
+                    const img = document.createElement('img');
+                    img.className = 'profile-drop-avatar';
+                    img.id = 'dropAvatarImg';
+                    img.src = url;
+                    dropPh.replaceWith(img);
+                }
+                showLocationToast('Photo updated', 'Looking good!');
+            });
+    }
+</script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

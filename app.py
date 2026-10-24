@@ -22,6 +22,25 @@ app.secret_key = os.environ.get("SECRET_KEY", "pillbox_secret_2024")
 app.permanent_session_lifetime = datetime.timedelta(days=365)
 
 
+_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
+           "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+
+
+@app.template_filter("nicedate")
+def nicedate(value):
+    """Format an ISO date (YYYY-MM-DD...) as 'Oct-15-2026'. Returns input unchanged if unparseable."""
+    if not value:
+        return value
+    s = str(value)[:10]
+    parts = s.split("-")
+    if len(parts) == 3 and parts[0].isdigit() and parts[1].isdigit() and parts[2].isdigit():
+        try:
+            return f"{_MONTHS[int(parts[1]) - 1]}-{parts[2]}-{parts[0]}"
+        except (IndexError, ValueError):
+            return value
+    return value
+
+
 @app.before_request
 def _make_session_permanent():
     session.permanent = True
@@ -67,6 +86,8 @@ APPOINTMENT_REASONS = [
 
 CATEGORIES = {
     "all": "All Products",
+    "pharmaceutical": "Pharmaceutical",
+    "otc": "Over-the-Counter (OTC)",
     "pharmacy": "Pharmacy & Health",
     "braces": "Braces & Supports",
     "personal_care": "Personal Care",
@@ -74,6 +95,21 @@ CATEGORIES = {
     "books": "Books",
     "stationery": "Office & Stationery",
 }
+
+# Medicine/health-themed placeholder shown for products the admin hasn't
+# uploaded a photo for yet. Inline SVG data-URI so it works offline with no asset file.
+PLACEHOLDER_IMG = (
+    "data:image/svg+xml;utf8,"
+    "<svg xmlns='http://www.w3.org/2000/svg' width='400' height='400' viewBox='0 0 400 400'>"
+    "<rect width='400' height='400' fill='%23eef2f7'/>"
+    "<g transform='translate(200,185)'>"
+    "<circle r='78' fill='none' stroke='%23b9c6d6' stroke-width='10'/>"
+    "<rect x='-46' y='-14' width='92' height='28' rx='14' fill='%237c5cff'/>"
+    "<rect x='-14' y='-46' width='28' height='92' rx='14' fill='%237c5cff'/>"
+    "</g>"
+    "<text x='200' y='320' font-family='Arial,sans-serif' font-size='24' fill='%238a97a8' "
+    "text-anchor='middle'>No photo yet</text></svg>"
+)
 
 DISCOUNT_OPTIONS = [0, 5, 10, 15, 20, 25, 30, 40, 50]
 
@@ -97,16 +133,35 @@ def save_products(products):
     db.write_list("products", products)
 
 
+def _selling_price(base, markup):
+    """Customer-facing selling price = base cost + markup%."""
+    return round(float(base) * (1 + float(markup) / 100), 2)
+
+
 def get_products():
-    """Return products with original_price, effective_price and normalised images list."""
+    """Return products with base_price, markup, original_price, effective_price
+    and a normalised images list."""
     products = load_products()
     for p in products:
+        # Backfill base/markup for legacy products: current price = base, 0% markup
+        if "base_price" not in p:
+            p["base_price"] = p.get("price", 0)
+        if "markup" not in p:
+            p["markup"] = 0
+        # Selling price is derived from base + markup (kept in sync on p["price"])
+        p["price"] = _selling_price(p["base_price"], p["markup"])
+
         disc = p.get("discount", 0)
         p["original_price"] = p["price"]
         p["effective_price"] = round(p["price"] * (1 - disc / 100), 2) if disc else p["price"]
         # Normalise: always expose p["images"] as a list
         if not p.get("images"):
             p["images"] = [p["img"]] if p.get("img") else []
+        # Fall back to a medicine-themed placeholder until the admin adds a real photo.
+        if not p.get("img"):
+            p["img"] = PLACEHOLDER_IMG
+        if not p["images"]:
+            p["images"] = [PLACEHOLDER_IMG]
     return products
 
 
@@ -221,9 +276,40 @@ SEARCH_SYNONYMS = {
     "immune": ["vitamin"],
     "blood pressure": ["blood pressure", "monitor"],
     "bp": ["blood pressure", "monitor"],
-    "heart": ["blood pressure"],
+    "heart": ["blood pressure", "monitor", "cardio", "cholesterol", "aspirin"],
+    "cardio": ["blood pressure", "monitor", "cholesterol"],
+    "cholesterol": ["cholesterol", "statin", "heart"],
+    "hypertension": ["blood pressure", "monitor"],
     "bandage": ["bandage"],
     "wound": ["bandage"],
+    # Health conditions — map a condition to the products that treat/relate to it
+    "diabetes": ["diabetes", "diabetic", "sugar", "glucose", "insulin", "metformin", "monitor"],
+    "diabetic": ["diabetes", "diabetic", "glucose", "insulin", "metformin"],
+    "sugar": ["diabetes", "diabetic", "glucose", "insulin", "sugar"],
+    "glucose": ["diabetes", "glucose", "monitor", "insulin"],
+    "insulin": ["insulin", "diabetes"],
+    "bone": ["bone", "calcium", "joint", "osteo", "vitamin d", "brace"],
+    "calcium": ["calcium", "bone", "vitamin d"],
+    "joint": ["joint", "bone", "arthritis", "brace", "knee", "compression"],
+    "arthritis": ["arthritis", "joint", "ibuprofen", "brace"],
+    "osteoporosis": ["bone", "calcium", "osteo", "vitamin d"],
+    "muscle": ["joint", "compression", "brace", "ibuprofen"],
+    "stomach": ["antacid", "digestive", "nausea"],
+    "acid": ["antacid", "digestive"],
+    "digestion": ["antacid", "digestive"],
+    "nausea": ["nausea", "antacid"],
+    "diarrhea": ["digestive", "oral rehydration"],
+    "eye": ["eye", "vision", "drops"],
+    "vision": ["eye", "vision"],
+    "ear": ["ear", "drops"],
+    "asthma": ["inhaler", "asthma", "allergy"],
+    "breathing": ["inhaler", "asthma"],
+    "thyroid": ["thyroid"],
+    "anemia": ["iron", "vitamin"],
+    "iron": ["iron", "vitamin"],
+    "sleep": ["sleep", "melatonin"],
+    "stress": ["score", "sleep", "vitamin"],
+    "diabetes test": ["glucose", "monitor", "diabetes"],
     # Braces
     "ankle": ["ankle", "brace"],
     "sprain": ["ankle", "brace", "wrist"],
@@ -287,44 +373,63 @@ def search_products_ranked(query: str, products: list, limit: int = 3) -> list:
     if not q:
         return []
 
-    scores = {}
-    # Expand query with synonyms
-    extra_terms = []
+    # Expand query with synonyms. The literal query is a stronger signal than
+    # synonym-expanded terms, so we keep them in separate buckets.
+    synonym_terms = []
     for key, vals in SEARCH_SYNONYMS.items():
         if q in key or key in q or key.startswith(q) or q.startswith(key):
-            extra_terms.extend(vals)
+            synonym_terms.extend(vals)
+    synonym_terms = [t for t in dict.fromkeys(synonym_terms) if t != q]  # de-dupe, drop the query itself
 
-    all_terms = [q] + extra_terms
+    # Tiered scoring so a NAME match always outranks a DESCRIPTION-only match.
+    # Name hits live in a high band (>=1000); description-only hits stay below it.
+    # Within each band, a literal-query hit beats a synonym hit.
+    def term_score(term, name_l, gen_l, desc_l, cat_l, is_query):
+        q_boost = 2 if is_query else 1  # literal query weighs double vs. a synonym
+        name_pts = 0
+        if term == name_l:
+            name_pts = 500          # exact name
+        elif name_l.startswith(term):
+            name_pts = 300          # name starts with term
+        elif term in name_l:
+            name_pts = 200          # name contains term
+        # Generic / "also known as" name — treated like the name, just a notch lower,
+        # so searching "Pioglitazone" surfaces a product named "PIOZ".
+        if gen_l:
+            if term == gen_l:
+                name_pts = max(name_pts, 450)
+            elif gen_l.startswith(term):
+                name_pts = max(name_pts, 280)
+            elif term in gen_l:
+                name_pts = max(name_pts, 180)
+        if name_pts:
+            return 1000 + name_pts * q_boost  # NAME band
 
+        other = 0
+        if term in desc_l:
+            other += 20 * q_boost   # description — last resort
+        if term in cat_l:
+            other += 15 * q_boost   # category
+        return other                 # stays below the 1000 name band
+
+    scores = {}
     for p in products:
         name_l = p["name"].lower()
+        gen_l  = str(p.get("generic_name", "")).lower()
         desc_l = p["description"].lower()
         cat_l  = p["category"].lower()
-        score  = 0
 
-        for term in all_terms:
-            # Exact name match — highest weight
-            if term == name_l:
-                score += 100
-            # Name starts with term
-            elif name_l.startswith(term):
-                score += 60
-            # Name contains term
-            elif term in name_l:
-                score += 40
-            # Description contains term
-            if term in desc_l:
-                score += 20
-            # Category contains term
-            if term in cat_l:
-                score += 15
+        best = 0
+        for term in [q]:
+            best = max(best, term_score(term, name_l, gen_l, desc_l, cat_l, is_query=True))
+        for term in synonym_terms:
+            best = max(best, term_score(term, name_l, gen_l, desc_l, cat_l, is_query=False))
 
-        if score > 0:
-            scores[p["id"]] = score
+        if best > 0:
+            scores[p["id"]] = best
 
-    ranked = sorted(scores.keys(), key=lambda pid: scores[pid], reverse=True)
-    result = [p for p in products if p["id"] in ranked]
-    result.sort(key=lambda p: scores.get(p["id"], 0), reverse=True)
+    result = [p for p in products if p["id"] in scores]
+    result.sort(key=lambda p: scores[p["id"]], reverse=True)
     return result[:limit]
 
 
@@ -475,7 +580,9 @@ def shop():
     if category != "all":
         products = [p for p in products if p["category"] == category]
     if search:
-        products = [p for p in products if search in p["name"].lower() or search in p["description"].lower()]
+        # Use the same ranked search as the autocomplete so results honour
+        # name-first ordering, generic names, and the keyword/synonym map.
+        products = search_products_ranked(search, products, limit=len(products))
     return render_template("shop.html", products=products, categories=CATEGORIES, active_category=category, search=search)
 
 
@@ -673,6 +780,7 @@ def checkout():
             save_orders(orders)
 
         # Cash / fallback path — confirm immediately
+        _reduce_stock_for_order(order)
         emails.send_order_confirmation(order)
         session["cart"] = {}
         session["last_order_id"] = order["id"]
@@ -701,6 +809,7 @@ def checkout_success():
         order["payment_status"] = "paid"
         order["stripe_session_id"] = session_id
         save_orders(orders)
+        _reduce_stock_for_order(order)
         emails.send_order_confirmation(order)
         session["cart"] = {}
         session.pop("pending_order_id", None)
@@ -1036,15 +1145,21 @@ def admin_add_product():
         products = load_products()
         pid = next_id(products)
         images, primary = _resolve_images(request, pid)
+        base   = round(float(request.form.get("base_price") or request.form.get("price") or 0), 2)
+        markup = float(request.form.get("markup", 0) or 0)
         new_product = {
             "id":          pid,
             "name":        request.form["name"].strip(),
-            "price":       round(float(request.form["price"]), 2),
+            "base_price":  base,
+            "markup":      markup,
+            "price":       _selling_price(base, markup),   # selling price = base + markup%
             "category":    request.form["category"],
             "img":         primary,
             "images":      images,
+            "generic_name": request.form.get("generic_name", "").strip(),
             "description": request.form["description"].strip(),
             "discount":    int(request.form.get("discount", 0)),
+            "stock":       max(0, int(request.form.get("stock", 0) or 0)),
         }
         products.append(new_product)
         save_products(products)
@@ -1068,12 +1183,16 @@ def admin_edit_product(product_id):
         if not primary:
             primary = prod.get("img", "")  # fallback: keep old primary
         prod["name"]        = request.form["name"].strip()
-        prod["price"]       = round(float(request.form["price"]), 2)
+        prod["base_price"]  = round(float(request.form.get("base_price") or request.form.get("price") or 0), 2)
+        prod["markup"]      = float(request.form.get("markup", 0) or 0)
+        prod["price"]       = _selling_price(prod["base_price"], prod["markup"])
         prod["category"]    = request.form["category"]
         prod["img"]         = primary
         prod["images"]      = images
+        prod["generic_name"] = request.form.get("generic_name", "").strip()
         prod["description"] = request.form["description"].strip()
         prod["discount"]    = int(request.form.get("discount", 0))
+        prod["stock"]       = max(0, int(request.form.get("stock", 0) or 0))
         save_products(products)
         flash(f'Product "{prod["name"]}" updated successfully!', "success")
         return redirect(url_for("admin_dashboard"))
@@ -1180,6 +1299,31 @@ def admin_set_discount(product_id):
     return jsonify({"success": False}), 404
 
 
+@app.route("/admin/product/stock/<int:product_id>", methods=["POST"])
+@admin_required
+def admin_set_stock(product_id):
+    """Set or adjust a product's on-hand count from the Products table.
+    Send either 'stock' (absolute value) or 'delta' (relative, e.g. -1)."""
+    products = load_products()
+    prod = next((p for p in products if p["id"] == product_id), None)
+    if not prod:
+        return jsonify({"success": False}), 404
+    current = prod.get("stock") if isinstance(prod.get("stock"), int) else 0
+    if request.form.get("delta") not in (None, ""):
+        try:
+            current += int(request.form.get("delta"))
+        except (ValueError, TypeError):
+            return jsonify({"success": False}), 400
+    else:
+        try:
+            current = int(request.form.get("stock", 0))
+        except (ValueError, TypeError):
+            return jsonify({"success": False}), 400
+    prod["stock"] = max(0, current)
+    save_products(products)
+    return jsonify({"success": True, "stock": prod["stock"]})
+
+
 # ── Invoices (stock-in) ───────────────────────────────────────────────────────
 
 def load_invoices():
@@ -1190,33 +1334,109 @@ def save_invoices(invoices):
     db.write_list("invoices", invoices)
 
 
-def _apply_invoice_to_stock(invoice):
-    """Push an invoice's line items into product stock + expiry batches."""
-    products = load_products()
-    by_id = {p["id"]: p for p in products}
-    changed = False
+def _invoice_qty_by_product(invoice):
+    """Sum the quantities this invoice assigns to each linked product.
+    Returns {product_id: total_qty}. Unlinked lines are ignored."""
+    totals = {}
     for item in invoice.get("items", []):
         pid = item.get("product_id")
-        if not pid or pid not in by_id:
+        if not pid:
             continue
-        prod = by_id[pid]
         try:
             qty = int(float(item.get("qty") or 0))
         except (ValueError, TypeError):
             qty = 0
         if qty <= 0:
             continue
-        # Running stock count
-        prod["stock"] = int(prod.get("stock", 0)) + qty
-        # Expiry/lot batches for expiry tracking
-        batches = prod.setdefault("batches", [])
-        batches.append({
-            "qty":      qty,
-            "lot":      item.get("lot", ""),
-            "expiry":   item.get("expiry", ""),
-            "invoice":  invoice.get("invoice_no", ""),
-            "added_at": datetime.datetime.now().isoformat(),
+        totals[pid] = totals.get(pid, 0) + qty
+    return totals
+
+
+def _apply_invoice_to_stock(invoice):
+    """Reconcile on-hand stock to match this invoice's current line items.
+
+    Adjusts each product's stock by the DELTA between what the invoice adds now
+    and what it previously added (tracked in invoice['applied_qty']). This keeps
+    on-hand consistent no matter how many times the invoice is edited and saved,
+    and correctly handles swapping one product for another.
+    """
+    products = load_products()
+    by_id = {p["id"]: p for p in products}
+
+    now_qty = _invoice_qty_by_product(invoice)
+    if "applied_qty" in invoice:
+        prev = {int(k): v for k, v in (invoice["applied_qty"] or {}).items()}  # JSON keys are strings
+    elif invoice.get("applied"):
+        # Legacy invoice applied under the old checkbox flow but never tracked its
+        # quantities — assume its current lines were already counted, so no change.
+        prev = dict(now_qty)
+    else:
+        prev = {}
+
+    # Every product touched by this invoice, past or present
+    all_pids = set(prev) | set(now_qty)
+    changed = False
+    for pid in all_pids:
+        if pid not in by_id:
+            continue
+        prod = by_id[pid]
+        delta = now_qty.get(pid, 0) - prev.get(pid, 0)
+        if delta == 0:
+            continue
+        prod["stock"] = max(0, int(prod.get("stock", 0)) + delta)
+        changed = True
+
+    # Refresh this invoice's expiry/lot batches so they mirror the current lines
+    for pid in all_pids:
+        if pid in by_id:
+            prod = by_id[pid]
+            prod["batches"] = [b for b in prod.get("batches", []) if b.get("invoice_id") != invoice["id"]]
+    for item in invoice.get("items", []):
+        pid = item.get("product_id")
+        if not pid or pid not in by_id:
+            continue
+        try:
+            qty = int(float(item.get("qty") or 0))
+        except (ValueError, TypeError):
+            qty = 0
+        if qty <= 0:
+            continue
+        by_id[pid].setdefault("batches", []).append({
+            "qty":        qty,
+            "lot":        item.get("lot", ""),
+            "expiry":     item.get("expiry", ""),
+            "invoice":    invoice.get("invoice_no", ""),
+            "invoice_id": invoice["id"],
+            "added_at":   datetime.datetime.now().isoformat(),
         })
+
+    if changed or now_qty or prev:
+        save_products(products)
+
+    # Remember what we just applied so the next save reconciles against it
+    invoice["applied_qty"] = {str(k): v for k, v in now_qty.items()}
+
+
+def _reduce_stock_for_order(order):
+    """Decrement on-hand stock for each item when an order is confirmed.
+    Stock never goes below 0. Safe to skip items that aren't tracked products."""
+    products = load_products()
+    by_id = {p["id"]: p for p in products}
+    changed = False
+    for item in order.get("items", []):
+        pid = item.get("id")
+        if pid not in by_id:
+            continue
+        prod = by_id[pid]
+        if not isinstance(prod.get("stock"), int):
+            continue  # untracked product — leave it alone
+        try:
+            qty = int(float(item.get("qty") or 0))
+        except (ValueError, TypeError):
+            qty = 0
+        if qty <= 0:
+            continue
+        prod["stock"] = max(0, prod["stock"] - qty)
         changed = True
     if changed:
         save_products(products)
@@ -1229,17 +1449,71 @@ def admin_invoices():
     return render_template("admin/invoices.html")
 
 
+@app.route("/admin/expired")
+@admin_required
+def admin_expired():
+    """Show every expired item — aggregated from each product's lot/expiry batches,
+    plus any invoice line whose expiry has passed (in case stock wasn't applied)."""
+    today = datetime.date.today().isoformat()
+    rows = []
+
+    # 1) Expired stock batches recorded on products (the authoritative source).
+    for p in get_products():
+        for b in p.get("batches", []):
+            exp = (b.get("expiry") or "")[:10]
+            if exp and exp < today:
+                rows.append({
+                    "product_id": p["id"],
+                    "name":       p["name"],
+                    "category":   p.get("category", ""),
+                    "qty":        b.get("qty", ""),
+                    "lot":        b.get("lot", ""),
+                    "expiry":     exp,
+                    "invoice":    b.get("invoice", ""),
+                    "invoice_id": b.get("invoice_id", ""),
+                })
+
+    # Sort most-recently-expired first.
+    rows.sort(key=lambda r: r["expiry"], reverse=True)
+
+    def days_past(exp):
+        try:
+            d = datetime.date.fromisoformat(exp)
+            return (datetime.date.today() - d).days
+        except (ValueError, TypeError):
+            return 0
+
+    return render_template("admin/expired.html", rows=rows, days_past=days_past)
+
+
 @app.route("/admin/invoices/list")
 @admin_required
 def admin_invoices_list():
-    invoices = sorted(load_invoices(), key=lambda x: x.get("created_at", ""), reverse=True)
-    return render_template("admin/invoices_list.html", invoices=invoices)
+    sort = request.args.get("sort", "date_desc")
+    invoices = load_invoices()
+    if sort == "date_asc":
+        invoices.sort(key=lambda x: x.get("date") or x.get("created_at", ""))
+    elif sort == "supplier":
+        invoices.sort(key=lambda x: (x.get("supplier") or "").lower())
+    else:  # date_desc (default)
+        invoices.sort(key=lambda x: x.get("date") or x.get("created_at", ""), reverse=True)
+    return render_template("admin/invoices_list.html", invoices=invoices, sort=sort)
 
 
 @app.route("/admin/invoices/new")
 @admin_required
 def admin_invoice_new():
     return render_template("admin/invoice_edit.html", invoice=None)
+
+
+@app.route("/admin/invoices/<invoice_id>/view")
+@admin_required
+def admin_invoice_view(invoice_id):
+    inv = next((i for i in load_invoices() if i["id"] == invoice_id), None)
+    if not inv:
+        flash("Invoice not found.", "error")
+        return redirect(url_for("admin_invoices_list"))
+    return render_template("admin/invoice_view.html", invoice=inv)
 
 
 @app.route("/admin/invoices/<invoice_id>")
@@ -1275,90 +1549,28 @@ def admin_invoice_save():
     inv["totals"] = data.get("totals", {})
     inv["updated_at"] = now
 
+    # Always reconcile on-hand stock + expiry to match this invoice's lines.
+    # The delta logic keeps counts consistent across repeated edits/saves.
+    _apply_invoice_to_stock(inv)
+    inv["applied"] = True
+
     save_invoices(invoices)
 
-    # Update the live system: stock + expiry (only when flagged, to avoid double-counting)
-    if data.get("apply_to_stock"):
-        _apply_invoice_to_stock(inv)
-        inv["applied"] = True
-        save_invoices(invoices)
-
     return jsonify({"success": True, "id": inv["id"]})
-
-
-@app.route("/admin/invoices/<invoice_id>/json")
-@admin_required
-def admin_invoice_json(invoice_id):
-    """Lightweight fetch used by the editor to poll for the phone-uploaded photo."""
-    inv = next((i for i in load_invoices() if i["id"] == invoice_id), None)
-    if not inv:
-        return jsonify({}), 404
-    return jsonify({"id": inv["id"], "photo": inv.get("photo", "")})
 
 
 @app.route("/admin/invoices/<invoice_id>/delete", methods=["POST"])
 @admin_required
 def admin_invoice_delete(invoice_id):
-    invoices = [i for i in load_invoices() if i["id"] != invoice_id]
-    save_invoices(invoices)
-    return jsonify({"success": True})
-
-
-@app.route("/admin/invoices/<invoice_id>/photo", methods=["POST"])
-@admin_required
-def admin_invoice_photo(invoice_id):
-    """Admin-side photo upload (when editing on desktop)."""
-    file = request.files.get("photo")
-    if not file or not allowed_file(file.filename):
-        return jsonify({"success": False, "message": "Invalid file"}), 400
-    ext = file.filename.rsplit(".", 1)[1].lower()
-    filename = f"invoice_{invoice_id}_{uuid.uuid4().hex[:8]}.{ext}"
-    file.save(os.path.join(UPLOAD_FOLDER, filename))
-    url = url_for("static", filename=f"uploads/{filename}", _external=False)
-    return jsonify({"success": True, "photo": url})
-
-
-def _inv_qr_token(invoice_id):
-    msg = f"invqr:{invoice_id}".encode()
-    return hmac.new(app.secret_key.encode(), msg, hashlib.sha256).hexdigest()[:20]
-
-
-@app.route("/admin/invoices/<invoice_id>/qr")
-@admin_required
-def admin_invoice_qr(invoice_id):
-    """Return a public phone-upload URL for snapping the invoice photo."""
-    token = _inv_qr_token(invoice_id)
-    path = url_for("invoice_qr_upload", invoice_id=invoice_id, token=token)
-    url = (PUBLIC_BASE_URL + path) if PUBLIC_BASE_URL else request.url_root.rstrip("/") + path
-    return jsonify({"success": True, "url": url})
-
-
-@app.route("/invoice-photo/<invoice_id>", methods=["GET"])
-def invoice_qr_upload(invoice_id):
-    if not hmac.compare_digest(_inv_qr_token(invoice_id), request.args.get("token", "")):
-        return "Invalid or expired link.", 403
-    return render_template("admin/invoice_photo_upload.html", invoice_id=invoice_id,
-                           token=request.args.get("token", ""))
-
-
-@app.route("/invoice-photo/<invoice_id>", methods=["POST"])
-def invoice_qr_upload_save(invoice_id):
-    if not hmac.compare_digest(_inv_qr_token(invoice_id), request.form.get("token", "")):
-        return jsonify({"success": False, "message": "Invalid link."}), 403
-    file = request.files.get("photo")
-    if not file or not allowed_file(file.filename):
-        return jsonify({"success": False, "message": "Invalid file"}), 400
-    ext = file.filename.rsplit(".", 1)[1].lower()
-    filename = f"invoice_{invoice_id}_{uuid.uuid4().hex[:8]}.{ext}"
-    file.save(os.path.join(UPLOAD_FOLDER, filename))
-    url = url_for("static", filename=f"uploads/{filename}", _external=False)
-    # Attach to the invoice if it exists
     invoices = load_invoices()
     inv = next((i for i in invoices if i["id"] == invoice_id), None)
     if inv:
-        inv["photo"] = url
-        save_invoices(invoices)
-    return jsonify({"success": True, "photo": url})
+        # Roll back the on-hand stock this invoice had added, so counts stay consistent.
+        inv["items"] = []
+        _apply_invoice_to_stock(inv)
+    invoices = [i for i in invoices if i["id"] != invoice_id]
+    save_invoices(invoices)
+    return jsonify({"success": True})
 
 
 @app.route("/api/admin/product-lookup")
@@ -1368,15 +1580,17 @@ def admin_product_lookup():
     q = request.args.get("q", "").strip().lower()
     if not q:
         return jsonify([])
+    # Ranked search: name first, then generic name, then description (last resort),
+    # plus the keyword/synonym map — same behaviour as the storefront autocomplete.
     results = []
-    for p in get_products():
-        if q in p["name"].lower() or q in str(p.get("description", "")).lower():
-            results.append({
-                "id": p["id"], "name": p["name"],
-                "cost": p.get("price", 0), "category": p["category"],
-            })
-        if len(results) >= 12:
-            break
+    for p in search_products_ranked(q, get_products(), limit=12):
+        imgs = p.get("images") or ([p["img"]] if p.get("img") else [])
+        results.append({
+            "id": p["id"], "name": p["name"],
+            "cost": p.get("price", 0), "category": p["category"],
+            "img": imgs[0] if imgs else "",
+            "stock": p.get("stock"),
+        })
     return jsonify(results)
 
 
@@ -1532,13 +1746,8 @@ def api_track():
         "device_type": _device_type(request.headers.get("User-Agent")),
         "ts":        now.isoformat(),
     }
-
-    events = load_events()
-    # Trim old events while we're here
-    cutoff = (now - datetime.timedelta(days=_EVENT_RETENTION_DAYS)).isoformat()
-    events = [e for e in events if e.get("ts", "") >= cutoff]
-    events.append(event)
-    save_events(events)
+    # Fast single-row insert (no full-table rewrite).
+    db.append_row("events", event)
     return jsonify({"ok": True})
 
 
@@ -1630,11 +1839,8 @@ def _log_search(term):
     if not term:
         return
     now = datetime.datetime.now()
-    searches = db.read_list("searches")
-    cutoff = (now - datetime.timedelta(days=_SEARCH_RETENTION_DAYS)).isoformat()
-    searches = [s for s in searches if s.get("ts", "") >= cutoff]
-    searches.append({"id": uuid.uuid4().hex, "term": term[:80], "ts": now.isoformat()})
-    db.write_list("searches", searches)
+    # Fast single-row insert (no full-table rewrite on every keystroke).
+    db.append_row("searches", {"id": uuid.uuid4().hex, "term": term[:80], "ts": now.isoformat()})
 
 
 @app.route("/admin/searches")

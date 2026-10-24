@@ -220,6 +220,7 @@
                 <span class="icon">➕</span><span>Add Product</span>
             </a>
             <a href="{{ url_for('admin_invoices') }}"><span class="icon">🧾</span><span>Invoices</span></a>
+            <a href="{{ url_for('admin_expired') }}"><span class="icon">⚠️</span><span>Expired</span></a>
             <a href="{{ url_for('admin_orders') }}">
                 <span class="icon">📋</span><span>Orders</span>
             </a>
@@ -270,12 +271,36 @@
                                placeholder="e.g. Ankle Brace Support" required>
                     </div>
 
+                    <!-- Also known as / Generic name -->
+                    <div class="form-group form-full">
+                        <label class="field-label">Also Known As / Generic Name <span style="font-weight:400;color:var(--gray-600);">(optional)</span></label>
+                        <input type="text" name="generic_name"
+                               value="{{ product.get('generic_name', '') if product else '' }}"
+                               placeholder="e.g. Pioglitazone — helps customers find 'PIOZ' by its generic name">
+                    </div>
+
                     <!-- Price -->
                     <div class="form-group">
-                        <label class="field-label">Base Price (JMD)</label>
-                        <input type="number" name="price" id="priceInput" step="0.01" min="0"
-                               value="{{ product.price if product else '' }}"
+                        <label class="field-label">Base Price / Cost (JMD)</label>
+                        <input type="number" name="base_price" id="priceInput" step="0.01" min="0"
+                               value="{{ product.get('base_price', product.price) if product else '' }}"
                                placeholder="0.00" required oninput="updatePricePreview()">
+                    </div>
+
+                    <!-- Markup -->
+                    <div class="form-group">
+                        <label class="field-label">Markup %</label>
+                        <input type="number" name="markup" id="markupInput" step="1" min="0"
+                               value="{{ product.get('markup', 0) if product else '' }}"
+                               placeholder="e.g. 40" oninput="updatePricePreview()">
+                    </div>
+
+                    <!-- On Hand -->
+                    <div class="form-group">
+                        <label class="field-label">On Hand (stock)</label>
+                        <input type="number" name="stock" id="stockInput" min="0" step="1"
+                               value="{{ product.get('stock') if product and product.get('stock') is not none else 0 }}"
+                               placeholder="0">
                     </div>
 
                     <!-- Category -->
@@ -458,14 +483,18 @@
     }
 
     function updatePricePreview() {
-        const price = parseFloat(document.getElementById('priceInput').value);
-        const disc  = parseInt(document.getElementById('discountInput').value || 0);
-        const el    = document.getElementById('pricePreview');
-        if (!price || isNaN(price)) { el.style.display = 'none'; return; }
+        const base   = parseFloat(document.getElementById('priceInput').value);
+        const markup = parseFloat(document.getElementById('markupInput').value) || 0;
+        const disc   = parseInt(document.getElementById('discountInput').value || 0);
+        const el     = document.getElementById('pricePreview');
+        if (!base || isNaN(base)) { el.style.display = 'none'; return; }
         const fmt = n => 'JMD ' + n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-        el.innerHTML = disc > 0
-            ? `Base: <strong>${fmt(price)}</strong> → Sale: <strong>${fmt(price*(1-disc/100))}</strong> <em>(${disc}% off)</em>`
-            : `Price: <strong>${fmt(price)}</strong>`;
+        const selling = base * (1 + markup / 100);   // base + markup% = customer price
+        let html = `Base: <strong>${fmt(base)}</strong>`;
+        if (markup > 0) html += ` + ${markup}% markup → Sells at: <strong>${fmt(selling)}</strong>`;
+        else            html += ` → Sells at: <strong>${fmt(selling)}</strong>`;
+        if (disc > 0)   html += `<br>After ${disc}% discount: <strong>${fmt(selling*(1-disc/100))}</strong>`;
+        el.innerHTML = html;
         el.style.display = 'block';
     }
     updatePricePreview();

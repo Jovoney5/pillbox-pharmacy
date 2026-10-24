@@ -163,6 +163,32 @@ def write_list(table, records):
     _replace_rows(table, [(rec.get("id"), rec) for rec in records])
 
 
+def append_row(table, record):
+    """Insert ONE row efficiently (no full-table rewrite). For high-volume
+    append-only tables like events/searches."""
+    init_db()
+    rec_id = str(record.get("id"))
+    conn = _connect()
+    cur = conn.cursor()
+    if USE_PG:
+        cur.execute(
+            f"INSERT INTO {_phys(table)} (id, data) VALUES (%s, %s) "
+            f"ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data",
+            (rec_id, json.dumps(record)),
+        )
+    else:
+        cur.execute(
+            f"INSERT OR REPLACE INTO {_phys(table)} (id, data) VALUES (?, ?)",
+            (rec_id, json.dumps(record)),
+        )
+    conn.commit()
+    try:
+        cur.close()
+    except Exception:
+        pass
+    conn.close()
+
+
 # ── Users (dict keyed by id) ──────────────────────────────────────────────────
 
 def read_users():
