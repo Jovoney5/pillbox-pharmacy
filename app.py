@@ -1486,6 +1486,162 @@ def admin_expired():
     return render_template("admin/expired.html", rows=rows, days_past=days_past)
 
 
+# Items are flagged for return once they're within this many days of expiry.
+RETURN_LEAD_DAYS = 7
+
+
+def _return_key(product_id, lot, expiry, invoice_id):
+    """Stable signature for one return line — survives invoice re-saves that
+    rebuild product batches, since it's derived from the batch's own fields."""
+    return "|".join([
+        str(product_id or ""),
+        str(lot or ""),
+        (str(expiry or ""))[:10],
+        str(invoice_id or ""),
+    ])
+
+
+def load_returns():
+    """Completed returns: list of {id, key, completed_at}. Backfills `id` from
+    `key` for any legacy rows so re-saving never hits a primary-key collision."""
+    rows = db.read_list("returns")
+    for r in rows:
+        if not r.get("id") and r.get("key"):
+            r["id"] = r["key"]
+    return rows
+
+
+def _completed_returns_by_key():
+    """Map each completed return key -> its completion date (YYYY-MM-DD)."""
+    out = {}
+    for r in load_returns():
+        if r.get("key"):
+            out[r["key"]] = (r.get("completed_at") or "")[:10]
+    return out
+
+
+@app.route("/admin/returns")
+@admin_required
+def admin_returns():
+    """Items that need to go back to the supplier for a rebate — anything already
+    expired OR expiring within RETURN_LEAD_DAYS. Grouped by supplier, with the
+    claim amount based on the base (original) cost paid, never the markup."""
+    today = datetime.date.today()
+    cutoff = (today + datetime.timedelta(days=RETURN_LEAD_DAYS)).isoformat()
+    today_iso = today.isoformat()
+
+    invoices_by_id = {inv["id"]: inv for inv in load_invoices()}
+    done_dates = _completed_returns_by_key()
+
+    # supplier name -> {rows: [...], total: float, outstanding: float}
+    groups = {}
+    grand_total = 0.0          # value of everything on the list
+    outstanding_total = 0.0    # value of what's still to be claimed (not yet completed)
+
+    for p in get_products():
+        for b in p.get("batches", []):
+            exp = (b.get("expiry") or "")[:10]
+            if not exp or exp > cutoff:
+                continue  # still comfortably in date
+
+            invoice_id = b.get("invoice_id", "")
+            inv = invoices_by_id.get(invoice_id)
+            supplier = (inv.get("supplier") if inv else "") or "Unknown supplier"
+
+            try:
+                qty = int(float(b.get("qty") or 0))
+            except (ValueError, TypeError):
+                qty = 0
+
+            # Rebate is based on the base cost (original price paid), never the markup.
+            try:
+                unit_cost = float(p.get("base_price") or 0)
+            except (ValueError, TypeError):
+                unit_cost = 0.0
+            claim = round(unit_cost * qty, 2)
+
+            key = _return_key(p["id"], b.get("lot"), exp, invoice_id)
+            completed = key in done_dates
+            done_date = done_dates.get(key, "")
+            # "On time" = processed on or before the product's expiry date.
+            on_time = bool(done_date) and done_date <= exp
+
+            row = {
+                "key":        key,
+                "product_id": p["id"],
+                "name":       p["name"],
+                "qty":        qty,
+                "lot":        b.get("lot", ""),
+                "expiry":     exp,
+                "expired":    exp < today_iso,
+                "invoice":    b.get("invoice", "") or (inv.get("invoice_no", "") if inv else ""),
+                "invoice_id": invoice_id,
+                "unit_cost":  round(unit_cost, 2),
+                "claim":      claim,
+                "completed":  completed,
+                "done_date":  done_date,
+                "on_time":    on_time,
+            }
+            g = groups.setdefault(supplier, {"rows": [], "total": 0.0, "outstanding": 0.0})
+            g["rows"].append(row)
+            g["total"] = round(g["total"] + claim, 2)
+            grand_total = round(grand_total + claim, 2)
+            if not completed:
+                g["outstanding"] = round(g["outstanding"] + claim, 2)
+                outstanding_total = round(outstanding_total + claim, 2)
+
+    # Sort rows: still-outstanding first, then completed; soonest-to-expire within each.
+    for g in groups.values():
+        g["rows"].sort(key=lambda r: (r["completed"], r["expiry"]))
+    suppliers = sorted(groups.items(), key=lambda kv: kv[0].lower())
+
+    def days_left(exp):
+        try:
+            return (datetime.date.fromisoformat(exp) - datetime.date.today()).days
+        except (ValueError, TypeError):
+            return 0
+
+    total_items = sum(len(g["rows"]) for _, g in suppliers)
+    done_count = sum(1 for _, g in suppliers for r in g["rows"] if r["completed"])
+    return render_template(
+        "admin/returns.html",
+        suppliers=suppliers, grand_total=grand_total, outstanding_total=outstanding_total,
+        total_items=total_items, done_count=done_count,
+        lead_days=RETURN_LEAD_DAYS, days_left=days_left,
+    )
+
+
+@app.route("/admin/returns/toggle", methods=["POST"])
+@admin_required
+def admin_return_toggle():
+    """Mark a return line complete (claimed) or re-open it. Keyed by the batch
+    signature so the state sticks even after invoices are edited and re-saved."""
+    data = request.get_json(silent=True) or request.form
+    key = (data.get("key") or "").strip()
+    if not key:
+        return jsonify({"success": False, "error": "missing key"}), 400
+
+    returns = load_returns()
+    existing = next((r for r in returns if r.get("key") == key), None)
+    if existing:
+        returns = [r for r in returns if r.get("key") != key]
+        completed = False
+    else:
+        # `id` is the DB primary key — use the (unique) return key so write_list
+        # can store it without collisions.
+        returns.append({
+            "id":           key,
+            "key":          key,
+            "completed_at": datetime.datetime.now().isoformat(),
+        })
+        completed = True
+    try:
+        db.write_list("returns", returns)
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+    return jsonify({"success": True, "completed": completed})
+
+
 @app.route("/admin/invoices/list")
 @admin_required
 def admin_invoices_list():

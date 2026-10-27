@@ -28,7 +28,7 @@ USE_PG = bool(DATABASE_URL)
 TABLE_PREFIX = "leeds_"
 
 # Logical table names used throughout the app.
-_LIST_TABLES = {"products", "orders", "staff", "appointments", "ads", "events", "searches", "invoices"}
+_LIST_TABLES = {"products", "orders", "staff", "appointments", "ads", "events", "searches", "invoices", "returns"}
 _ALL_TABLES = _LIST_TABLES | {"users"}
 
 
@@ -106,8 +106,15 @@ if USE_PG:
 
 else:
     def _connect():
-        conn = sqlite3.connect(DB_PATH)
+        # timeout: if the file is momentarily busy, wait (up to 5s) instead of
+        #   erroring instantly. In practice writes take ~1ms, so this is a safety
+        #   net that's essentially never reached — not a delay you'd ever feel.
+        conn = sqlite3.connect(DB_PATH, timeout=5.0)
         conn.row_factory = sqlite3.Row
+        # WAL lets reads and writes happen at the same time without blocking each
+        # other; busy_timeout backs up the Python-side timeout at the SQLite level.
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute("PRAGMA busy_timeout=5000")
         return conn
 
     def init_db():
